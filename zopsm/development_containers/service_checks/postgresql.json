@@ -1,0 +1,14 @@
+{
+  "service": {
+    "name": "postgresql",
+    "tags": ["postgresql-service"],
+    "address": "172.25.0.109",
+    "port": 5432,
+    "enableTagOverride": false,
+    "checks": [{
+      "tcp": "172.25.0.109:5432",
+      "interval": "10s",
+      "timeout": "1s"
+    }]
+  }
+}

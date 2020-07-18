@@ -1,0 +1,24 @@
+# /etc/systemd/system/postgresql-consul.service
+# systemd unit example
+[Unit]
+Description=PostgreSQL Service (De)Registrator for Consul
+BindsTo=patroni.service
+After=patroni.service
+PartOf=patroni.service
+
+[Service]
+Environment=CONSUL_HTTP_ADDR=159.69.27.82:8500
+ExecStartPre=/bin/bash -c "/bin/systemctl set-environment ipaddress=$(/sbin/ifconfig -a eth0 | grep 'inet addr:' \
+ | /usr/bin/cut -d ':' -f 2 | /usr/bin/cut -d ' ' -f1)"
+
+ExecStart=/bin/bash -c "/bin/echo '{   \"service\": {     \"name\": \"postgresql\", \"tags\": [\"postgresql-service\"],  \
+  \"address\": \"${ipaddress}\",    \"port\": 5432, \"checks\": [ { \"tcp\": \"${ipaddress}:5432\
+  \"interval\": \"10s\", \"timeout\": \"1s\"      }    ]  }}'  > /etc/consul.d/postgresql.json"
+
+ExecStartPost=/bin/bash -c '/usr/local/bin/consul reload'
+RemainAfterExit=true
+ExecStop=/bin/bash -c '/bin/rm /etc/consul.d/postgresql.json'
+ExecStopPost=/bin/bash -c '/usr/local/bin/consul reload'
+
+[Install]
+WantedBy=multi-user.target

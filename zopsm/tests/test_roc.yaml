@@ -1,0 +1,3117 @@
+---
+- config:
+    - testset: "Real-time Online Chat Actions"
+    - generators:
+      - 'account_email_handler': {type: 'random_text', max_length: 10}
+      - 'admin_email_handler': {type: 'random_text', max_length: 10}
+      - 'consumer_email_handler1': {type: 'random_text', max_length: 10}
+      - 'consumer_email_handler2': {type: 'random_text', max_length: 10}
+      - 'consumer_email_handler3': {type: 'random_text', max_length: 10}
+      - 'consumer_email_handler4': {type: 'random_text', max_length: 10}
+
+    - variable_binds:
+#        - saas_host: 'http://localhost:8000'
+#        - roc_host: 'http://localhost:8888'
+#        - auth_host_uri_prefix: 'http://localhost:12345/v1/auth/token'
+        - saas_uri_prefix: '/api/v1'
+        - roc_uri_prefix: '/v1/roc'
+        - mailgun_token: "Basic YXBpOmtleS00YWRkYTA2ZjI3ZjE1MGUwZDkyMDYzMmNkYmU1YjI3NQ=="
+
+## Saas Project Creation
+
+- test:
+    - name: "Login as Tenant Manager"
+    - url: {template: "$saas_host/$saas_uri_prefix/session"}
+    - method: 'POST'
+    - body: {template: '{"email":"$tenant_manager_email", "password": "$manager_password"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'manager_token': {jsonpath_mini: 'content.token'}
+
+- test:
+    - generator_binds: {admin_email_handler: admin_email_handler}
+    - name: "Register New Account"
+    - url: {template: "$saas_host$saas_uri_prefix/register"}
+    - method: 'POST'
+    - body: {template: '{
+      "organizationName": "Example Organization",
+      "address": "Example Address, A Street No 5.",
+      "phone": "12345678901",
+      "email": "zops_test_$admin_email_handler@example.com"
+      }'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'registration_id': {jsonpath_mini: 'content.registrationId'}
+        - 'email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - name: "Email-Tracking with Manager Role"
+    - url: {template: "$saas_host/$saas_uri_prefix/email-tracking?receiver=$email"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'mailgun_mail_id1': {jsonpath_mini: 'content.0.providerMailId'}
+
+- test:
+    - delay: 6
+    - name: "MailGun Events"
+    - url: {template: "https://api.mailgun.net/v3/mg.zops.io/events?message-id=$mailgun_mail_id1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": $mailgun_token}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'mail_url': {jsonpath_mini: 'items.0.storage.url'}
+
+- test:
+    - name: "Take Approve Code inside Mailgun Header"
+    - url: {template: "$mail_url"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": $mailgun_token}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'approve_code': {jsonpath_mini: 'X-Approve-Code'}
+
+- test:
+    - name: "Approve Account"
+    - url: {template: "$saas_host$saas_uri_prefix/register/$registration_id/"}
+    - method: 'PUT'
+    - body: {template: '{"approveCode": "$approve_code", "email": "$email", "password": "123", "firstName": "adminfirst", "lastName": "adminlast"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'user_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - name: "Login as Admin User"
+    - url: {template: "$saas_host$saas_uri_prefix/session"}
+    - method: 'POST'
+    - body: {template: '{"email":"$user_email", "password": "123"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'saas_admin_token': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create a new project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"name": "Aka Project", "description": "Super top secret project!"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'project_token': {jsonpath_mini: 'content.token'}
+        - 'project_id': {jsonpath_mini: 'content.id'}
+
+# Create consumers
+- test:
+    - generator_binds: {consumer_email_handler1: consumer_email_handler1}
+    - name: "Create a new consumer - 1"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"email": "$consumer_email_handler1@xxx.com", "password": "xxxx"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer1_id': {jsonpath_mini: 'content.id'}
+        - 'consumer1_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - generator_binds: {consumer_email_handler2: consumer_email_handler2}
+    - name: "Create a new consumer - 2"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"email": "$consumer_email_handler2@xxx.com", "password": "xxxx"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer2_id': {jsonpath_mini: 'content.id'}
+        - 'consumer2_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - generator_binds: {consumer_email_handler3: consumer_email_handler3}
+    - name: "Create a new consumer - 3"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"email": "$consumer_email_handler3@xxx.com", "password": "xxxx"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer3_id': {jsonpath_mini: 'content.id'}
+        - 'consumer3_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - generator_binds: {consumer_email_handler4: consumer_email_handler4}
+    - name: "Create a new consumer - 4"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"email": "$consumer_email_handler4@xxx.com", "password": "xxxx"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer4_id': {jsonpath_mini: 'content.id'}
+        - 'consumer4_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - generator_binds: {consumer_email_handler4: consumer_email_handler4}
+    - name: "Create a new consumer - 5"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"email": "$consumer_email_handler4@xxx.com", "password": "xxxx"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer5_id': {jsonpath_mini: 'content.id'}
+        - 'consumer5_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - generator_binds: {consumer_email_handler4: consumer_email_handler4}
+    - name: "Create a new consumer - 6"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"email": "$consumer_email_handler4@xxx.com", "password": "xxxx"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer6_id': {jsonpath_mini: 'content.id'}
+        - 'consumer6_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - generator_binds: {consumer_email_handler4: consumer_email_handler4}
+    - name: "Create a new consumer - 7"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"email": "$consumer_email_handler4@xxx.com", "password": "xxxx"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer7_id': {jsonpath_mini: 'content.id'}
+        - 'consumer7_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - generator_binds: {consumer_email_handler4: consumer_email_handler4}
+    - name: "Create a new consumer - 8"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"email": "$consumer_email_handler4@xxx.com", "password": "xxxx"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer8_id': {jsonpath_mini: 'content.id'}
+        - 'consumer8_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - generator_binds: {consumer_email_handler4: consumer_email_handler4}
+    - name: "Create a new consumer - 9"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"email": "$consumer_email_handler4@xxx.com", "password": "xxxx"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer9_id': {jsonpath_mini: 'content.id'}
+        - 'consumer9_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - generator_binds: {consumer_email_handler4: consumer_email_handler4}
+    - name: "Create a new consumer - 10"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"email": "$consumer_email_handler4@xxx.com", "password": "xxxx"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer10_id': {jsonpath_mini: 'content.id'}
+        - 'consumer10_email': {jsonpath_mini: 'content.email'}
+
+- test:
+      - generator_binds: {consumer_email_handler4: consumer_email_handler4}
+      - name: "Create a new consumer 11 for last read message test"
+      - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+      - method: 'POST'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+      - body: {template: '{"email": "$consumer_email_handler4@xxx.com", "password": "xxxx"}'}
+      - expected_status: [201]
+      - extract_binds:
+            - 'consumer11_id': {jsonpath_mini: 'content.id'}
+            - 'consumer11_email': {jsonpath_mini: 'content.email'}
+
+- test:
+      - generator_binds: {consumer_email_handler4: consumer_email_handler4}
+      - name: "Create a new consumer 12 for last read message test"
+      - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+      - method: 'POST'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+      - body: {template: '{"email": "$consumer_email_handler4@xxx.com", "password": "xxxx"}'}
+      - expected_status: [201]
+      - extract_binds:
+            - 'consumer12_id': {jsonpath_mini: 'content.id'}
+            - 'consumer12_email': {jsonpath_mini: 'content.email'}
+
+
+# Attach Consumer to the Project
+- test:
+    - name: "Attach consumer 1 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 2 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer2_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 3 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer3_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 4 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer4_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 5 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer5_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 6 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer6_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 7 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer7_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 8 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer8_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 9 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer9_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 10 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer10_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+      - name: "Attach consumer 11 to project"
+      - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+      - method: 'POST'
+      - body: {template: '{"consumerId":"$consumer11_id"}'}
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+      - expected_status: [201]
+
+- test:
+      - name: "Attach consumer 12 to project"
+      - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+      - method: 'POST'
+      - body: {template: '{"consumerId":"$consumer12_id"}'}
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+      - expected_status: [201]
+
+
+
+# Attach Service to Project
+- test:
+    - name: "Attach service project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/services"}
+    - method: 'POST'
+    - body: {template: '{"name":"message", "description":"fff", "serviceCatalogCode":"roc"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'service_catalog_code': {jsonpath_mini: 'content.serviceCatalogCode'}
+
+
+# Create Refresh Tokens
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_1': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer2_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_2': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer3_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_3': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer4_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_4': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer5_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_5': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer6_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_6': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer7_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_7': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer8_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_8': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer9_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_9': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer10_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_10': {jsonpath_mini: 'content.token'}
+
+- test:
+      - name: "Create Roc Service Token"
+      - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+      - method: 'POST'
+      - body: {template: '{"consumerId":"$consumer11_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+      - expected_status: [201]
+      - extract_binds:
+            - 'consumer_token_11': {jsonpath_mini: 'content.token'}
+
+- test:
+      - name: "Create Roc Service Token"
+      - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+      - method: 'POST'
+      - body: {template: '{"consumerId":"$consumer12_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+      - expected_status: [201]
+      - extract_binds:
+            - 'consumer_token_12': {jsonpath_mini: 'content.token'}
+
+
+################
+
+# Auth service - Obtaining Access Tokens
+
+- test:
+    - name: "Create Access Token from Auth Service"
+    - url: {template: "$auth_host_uri_prefix"}
+    - method: 'POST'
+    - body: {template: '{"refreshToken":"$consumer_token_1"}'}
+    - headers: {template: {"Content-Type": "application/json"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_refresh_token_1': {jsonpath_mini: 'content.refreshToken'}
+        - 'consumer_access_token_1': {jsonpath_mini: 'content.accessToken'}
+
+
+- test:
+    - name: "Create Access Token from Auth Service"
+    - url: {template: "$auth_host_uri_prefix"}
+    - method: 'POST'
+    - body: {template: '{"refreshToken":"$consumer_token_2"}'}
+    - headers: {template: {"Content-Type": "application/json"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_refresh_token_2': {jsonpath_mini: 'content.refreshToken'}
+        - 'consumer_access_token_2': {jsonpath_mini: 'content.accessToken'}
+
+
+- test:
+    - name: "Create Access Token from Auth Service"
+    - url: {template: "$auth_host_uri_prefix"}
+    - method: 'POST'
+    - body: {template: '{"refreshToken":"$consumer_token_3"}'}
+    - headers: {template: {"Content-Type": "application/json"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_refresh_token_3': {jsonpath_mini: 'content.refreshToken'}
+        - 'consumer_access_token_3': {jsonpath_mini: 'content.accessToken'}
+
+- test:
+    - name: "Create Access Token from Auth Service"
+    - url: {template: "$auth_host_uri_prefix"}
+    - method: 'POST'
+    - body: {template: '{"refreshToken":"$consumer_token_4"}'}
+    - headers: {template: {"Content-Type": "application/json"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_refresh_token_4': {jsonpath_mini: 'content.refreshToken'}
+        - 'consumer_access_token_4': {jsonpath_mini: 'content.accessToken'}
+
+- test:
+    - name: "Create Access Token from Auth Service"
+    - url: {template: "$auth_host_uri_prefix"}
+    - method: 'POST'
+    - body: {template: '{"refreshToken":"$consumer_token_5"}'}
+    - headers: {template: {"Content-Type": "application/json"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_refresh_token_5': {jsonpath_mini: 'content.refreshToken'}
+        - 'consumer_access_token_5': {jsonpath_mini: 'content.accessToken'}
+
+- test:
+    - name: "Create Access Token from Auth Service"
+    - url: {template: "$auth_host_uri_prefix"}
+    - method: 'POST'
+    - body: {template: '{"refreshToken":"$consumer_token_6"}'}
+    - headers: {template: {"Content-Type": "application/json"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_refresh_token_6': {jsonpath_mini: 'content.refreshToken'}
+        - 'consumer_access_token_6': {jsonpath_mini: 'content.accessToken'}
+
+- test:
+    - name: "Create Access Token from Auth Service"
+    - url: {template: "$auth_host_uri_prefix"}
+    - method: 'POST'
+    - body: {template: '{"refreshToken":"$consumer_token_7"}'}
+    - headers: {template: {"Content-Type": "application/json"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_refresh_token_7': {jsonpath_mini: 'content.refreshToken'}
+        - 'consumer_access_token_7': {jsonpath_mini: 'content.accessToken'}
+
+- test:
+    - name: "Create Access Token from Auth Service"
+    - url: {template: "$auth_host_uri_prefix"}
+    - method: 'POST'
+    - body: {template: '{"refreshToken":"$consumer_token_8"}'}
+    - headers: {template: {"Content-Type": "application/json"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_refresh_token_8': {jsonpath_mini: 'content.refreshToken'}
+        - 'consumer_access_token_8': {jsonpath_mini: 'content.accessToken'}
+
+- test:
+    - name: "Create Access Token from Auth Service"
+    - url: {template: "$auth_host_uri_prefix"}
+    - method: 'POST'
+    - body: {template: '{"refreshToken":"$consumer_token_9"}'}
+    - headers: {template: {"Content-Type": "application/json"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_refresh_token_9': {jsonpath_mini: 'content.refreshToken'}
+        - 'consumer_access_token_9': {jsonpath_mini: 'content.accessToken'}
+
+- test:
+    - name: "Create Access Token from Auth Service"
+    - url: {template: "$auth_host_uri_prefix"}
+    - method: 'POST'
+    - body: {template: '{"refreshToken":"$consumer_token_10"}'}
+    - headers: {template: {"Content-Type": "application/json"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_refresh_token_10': {jsonpath_mini: 'content.refreshToken'}
+        - 'consumer_access_token_10': {jsonpath_mini: 'content.accessToken'}
+
+- test:
+      - name: "Create Access Token from Auth Service"
+      - url: {template: "$auth_host_uri_prefix"}
+      - method: 'POST'
+      - body: {template: '{"refreshToken":"$consumer_token_11"}'}
+      - headers: {template: {"Content-Type": "application/json"}}
+      - expected_status: [201]
+      - extract_binds:
+            - 'consumer_refresh_token_11': {jsonpath_mini: 'content.refreshToken'}
+            - 'consumer_access_token_11': {jsonpath_mini: 'content.accessToken'}
+
+- test:
+      - name: "Create Access Token from Auth Service"
+      - url: {template: "$auth_host_uri_prefix"}
+      - method: 'POST'
+      - body: {template: '{"refreshToken":"$consumer_token_12"}'}
+      - headers: {template: {"Content-Type": "application/json"}}
+      - expected_status: [201]
+      - extract_binds:
+            - 'consumer_refresh_token_12': {jsonpath_mini: 'content.refreshToken'}
+            - 'consumer_access_token_12': {jsonpath_mini: 'content.accessToken'}
+
+- test:
+  - name: "Get Servies Admin Token"
+  - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/services-token"}
+  - method: 'GET'
+  - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+  - expected_status: [200]
+  - extract_binds:
+    - 'oldServicesAdminToken': {jsonpath_mini: 'content.projectServicesAdminToken'}
+
+- test:
+  - name: "Update Servies Admin Token"
+  - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/services-token"}
+  - method: 'GET'
+  - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+  - expected_status: [200]
+  - extract_binds:
+    - 'servicesAdminToken': {jsonpath_mini: 'content.projectServicesAdminToken'}
+
+
+#######################################################################################################################
+                                        # ROC Tests #
+                                        # ROC Tests #
+                                        # ROC Tests #
+                                        # ROC Tests #
+
+- test:
+    - name: "Resources List"
+    - url: {template: "$roc_host"}
+    - method: 'GET'
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [200]
+
+# Me resource initial subscriber creation
+
+- test:
+    - name: "Get Me Unauthorized"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - headers: {"Content-Type": "application/json"}
+    - expected_status: [401]
+
+
+- test:
+    - name: "Get Me - user1"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'user_id_1': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Get Me - user2"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'user_id_2': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Get Me - user3"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'user_id_3': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Get Me - user4"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_4"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'user_id_4': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Get Me - user5"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_5"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'user_id_5': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Get Me - user6"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_6"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'user_id_6': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Get Me - user7"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_7"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'user_id_7': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Get Me - user8"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_8"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'user_id_8': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Get Me - user9"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_9"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'user_id_9': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Get Me - user10"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_10"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'user_id_10': {jsonpath_mini: 'content.id'}
+
+
+# Contact request
+
+# Create
+- test:
+    - name: "Send Contact Request User 1 to User 2"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'POST'
+    - body: {template: '{"invitee": "$user_id_2", "contactRequestMessage": "I am User 2.Hi there! It would be great to keep in touch with you from now on till the end.", "approve": "not_evaluated"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Send Contact Request User 1 to User 3"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'POST'
+    - body: {template: '{"invitee": "$user_id_3", "contactRequestMessage": "I am User 3.Hi there! It would be great to keep in touch with you from now on till the end.", "approve": "not_evaluated"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Send Contact Request User 1 to User 4"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'POST'
+    - body: {template: '{"invitee": "$user_id_4", "contactRequestMessage": "I am User 4.Hi there! It would be great to keep in touch with you from now on till the end.", "approve": "not_evaluated"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Send Contact Request User 1 to User 5"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'POST'
+    - body: {template: '{"invitee": "$user_id_5", "contactRequestMessage": "I am User 5! It would be great to keep in touch with you from now on till the end.", "approve": "not_evaluated"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Send Contact Request User 1 to User 6"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'POST'
+    - body: {template: '{"invitee": "$user_id_6", "contactRequestMessage": "I am User 6! It would be great to keep in touch with you from now on till the end.", "approve": "not_evaluated"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Send Contact Request Missing Parameter: invitee"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'POST'
+    - body: {template: '{"invitee": null, "contactRequestMessage": "Hi there! It would be great to keep in touch with you from now on till the end.", "approve": "not_evaluated"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "Send Contact Request Missing Parameter: Contact Request Message"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'POST'
+    - body: {template: '{"invitee": "$user2_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [400]
+
+# List
+- test:
+    - name: "List Contact Request Sent By User1"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests?inviter=true"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.0.inviter", comparator: "str_eq", expected: {template: '$consumer1_id'}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$user_id_2"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$user_id_3"}}
+        - extract_test: {jsonpath_mini: "content.0.id",  test: "exists"}
+        - extract_test: {jsonpath_mini: "content.1.id",  test: "exists"}
+    - extract_binds:
+        - 'contact_request_id_1_5': {jsonpath_mini: 'content.3.id'}
+        - 'contact_request_id_1_6': {jsonpath_mini: 'content.4.id'}
+
+- test:
+    - name: "List Contact Request Sent By User1 To User2"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.0.inviter", comparator: "str_eq", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.0.invitee", comparator: "str_eq", expected: {template: '$user_id_2'}}
+        - extract_test: {jsonpath_mini: "content.0.id",  test: "exists"}
+    - extract_binds:
+        - 'cr_id_1_2': {jsonpath_mini: 'content.0.id'}
+
+- test:
+    - name: "List Contact Request Sent By User1 To User3"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.0.inviter", comparator: "str_eq", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.0.invitee", comparator: "str_eq", expected: {template: '$user_id_3'}}
+        - extract_test: {jsonpath_mini: "content.0.id",  test: "exists"}
+    - extract_binds:
+        - 'cr_id_1_3': {jsonpath_mini: 'content.0.id'}
+
+- test:
+    - name: "List Contact Request Sent By User1 To User4"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_4"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.0.inviter", comparator: "str_eq", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.0.invitee", comparator: "str_eq", expected: {template: '$user_id_4'}}
+        - extract_test: {jsonpath_mini: "content.0.id",  test: "exists"}
+    - extract_binds:
+        - 'cr_id_1_4': {jsonpath_mini: 'content.0.id'}
+
+# Get Contact Request with MethodNotAllowed
+- test:
+    - name: "Get Contact Request Sent By User1 To User4 as User 1"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests/$cr_id_1_4"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [405]
+
+# Check contact requests
+- test:
+    - name: "Get Me - user1"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.contactRequestsOut", comparator: "contains", expected: {template: '$cr_id_1_2'}}
+        - compare: {jsonpath_mini: "content.contactRequestsOut", comparator: "contains", expected: {template: '$cr_id_1_3'}}
+        - compare: {jsonpath_mini: "content.contactRequestsOut", comparator: "contains", expected: {template: '$cr_id_1_4'}}
+
+- test:
+    - name: "Get Me - user2"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.contactRequestsIn", comparator: "contains", expected: {template: '$cr_id_1_2'}}
+
+- test:
+    - name: "Get Me - user3"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.contactRequestsIn", comparator: "contains", expected: {template: '$cr_id_1_3'}}
+
+- test:
+    - name: "Get Me - user4"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_4"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.contactRequestsIn", comparator: "contains", expected: {template: '$cr_id_1_4'}}
+
+# Cancel Contact Request
+- test:
+    - name: "Cancel Contact Request to non-alphanumeric Invalid Id"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests/invalid_id"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "Cancel Contact Request to alphanumeric Invalid Id"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests/123asd"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [404]
+
+- test:
+    - name: "Cancel Contact Request to consumer 4"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests/$cr_id_1_4"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+# Accept Contact Request
+- test:
+    - name: "Accept Contact Request to consumer 2"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests/$cr_id_1_2"}
+    - method: 'PUT'
+    - body: '{"invitee": null, "contactRequestMessage": null, "approve": "approved"}'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Accept Contact Request to consumer 5"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests/$contact_request_id_1_5"}
+    - method: 'PUT'
+    - body: '{"invitee": null, "contactRequestMessage": null, "approve": "approved"}'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_5"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Accept Contact Request to consumer 6"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests/$contact_request_id_1_6"}
+    - method: 'PUT'
+    - body: '{"invitee": null, "contactRequestMessage": null, "approve": "approved"}'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_6"}}
+    - expected_status: [202]
+
+# Reject Contact Request
+- test:
+    - name: "Reject Contact Request Invalid"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests/$cr_id_1_3"}
+    - method: 'PUT'
+    - body: '{"invitee": null, "contactRequestMessage": null, "approve": "invalid"}'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - expected_status: [400]
+
+- test:
+    - name: "Reject Contact Request Invalid"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests/$cr_id_1_3"}
+    - method: 'PUT'
+    - body: '{"invitee": "asd", "contactRequestMessage": "asd", "approve": "rejected"}'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - expected_status: [400]
+
+- test:
+    - name: "Reject Contact Request to consumer 3"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests/$cr_id_1_3"}
+    - method: 'PUT'
+    - body: '{"invitee": null, "contactRequestMessage": null, "approve": "rejected"}'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - expected_status: [202]
+
+# To delete a contact add user1 - 3
+- test:
+    - name: "Send Contact Request to 1 as 3"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'POST'
+    - body: {template: '{"invitee": "$user_id_1", "contactRequestMessage": "Hi there! It would be great to keep in touch with you from now on till the end.", "approve": "not_evaluated"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - expected_status: [202]
+
+- test:
+    - name: "List Contact Request Sent By User3 To User1"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.0.inviter", comparator: "str_eq", expected: {template: '$user_id_3'}}
+        - compare: {jsonpath_mini: "content.0.invitee", comparator: "str_eq", expected: {template: '$user_id_1'}}
+        - extract_test: {jsonpath_mini: "content.0.id",  test: "exists"}
+    - extract_binds:
+        - 'cr_id_3_1': {jsonpath_mini: 'content.0.id'}
+
+- test:
+    - name: "Accept Contact Request as User 1"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests/$cr_id_3_1"}
+    - method: 'PUT'
+    - body: '{"invitee": null, "contactRequestMessage": null, "approve": "approved"}'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+# Check contacts
+- test:
+    - name: "Get Me - user1"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.contacts", comparator: "contains", expected: {template: '$user_id_2'}}
+        - compare: {jsonpath_mini: "content.contacts", comparator: "contains", expected: {template: '$user_id_3'}}
+
+# Delete a contact
+- test:
+    - name: "Delete Contact User3"
+    - url: {template: "$roc_host$roc_uri_prefix/contacts/$user_id_3"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+# Check contacts
+- test:
+    - name: "Get Me - user1"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.contacts", comparator: "not_contains", expected: {template: '$user_id_3'}}
+
+# banned_contact resource test
+# banned_contact resource test
+# banned_contact resource test
+
+- test:
+    - name: "Ban user 2 as User 1"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-contacts"}
+    - method: 'POST'
+    - body: {template: '{"bannedContactId": "$user_id_2"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Ban user 3 (not in contact) as User 1"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-contacts"}
+    - method: 'POST'
+    - body: {template: '{"bannedContactId": "$user_id_3"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Ban Invalid User as User 1"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-contacts"}
+    - method: 'POST'
+    - body: {template: '{"bannedContactId": "sjldfsdlfjh39sfsdyfs9df"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Ban user 1 (not in contact) as User 6"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-contacts"}
+    - method: 'POST'
+    - body: {template: '{"bannedContactId": "$user_id_1"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_6"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Me - user1"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "contains", expected: {template: '$user_id_2'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "contains", expected: {template: '$user_id_2'}}
+        - compare: {jsonpath_mini: "content.contacts", comparator: "not_contains", expected: {template: '$user_id_2'}}
+        - compare: {jsonpath_mini: "content.contacts", comparator: "not_contains", expected: {template: '$user_id_6'}}
+
+- test:
+    - name: "Unban User 3"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-contacts/$user_id_3"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Unban Not Banned User"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-contacts/$user_id_4"}
+    - delay: 1
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "Get Me - user1"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "contains", expected: {template: '$user_id_2'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "not_contains", expected: {template: '$user_id_3'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "not_contains", expected: {template: '$user_id_4'}}
+
+- test:
+    - name: "Unban User 2"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-contacts/$user_id_2"}
+    - delay: 1
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+
+
+## Channel
+# Types:
+#   public
+#   private
+#   invisible
+#   public-announcement
+#   private-announcement
+#   invisible-announcement
+
+# Create channel as Admin User
+
+
+- test:
+    - name: "Create public channel as AdminUser"
+    - url: {template: "$roc_host$roc_uri_prefix/admin/create-channel"}
+    - delay: 2
+    - method: 'POST'
+    - body: {template: '{"name": "Test Admin Create Public Channel 1",
+                          "description": "Test Admin Create Public Channel Description",
+                          "channelType": "public",
+                          "subscribers": ["$user_id_1", "$user_id_2", "$user_id_3", "$user_id_4", "dsdfsdfsdf"],
+                          "managers": ["$user_id_5", "invalidid"]}'
+    }
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $servicesAdminToken"}}
+    - expected_status: [202]
+    - extract_binds:
+        - 'admin_public_channel_id_1': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create public channel as AdminUser with invalid Admin Token"
+    - delay: 2
+    - url: {template: "$roc_host$roc_uri_prefix/admin/create-channel"}
+    - method: 'POST'
+    - body: {template: '{"name": "Test Admin Create Public Channel 1",
+                          "description": "Test Admin Create Public Channel Description",
+                          "channelType": "public",
+                          "subscribers": ["$user_id_1", "$user_id_2", "$user_id_3", "$user_id_4"],
+                          "managers": ["$user_id_5"]}'
+    }
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $oldServicesAdminToken"}}
+    - expected_status: [401]
+
+- test:
+    - name: "Get Admin Public Channel as Managers"
+    - delay: 2
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$admin_public_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_5"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_5'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_5'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+
+- test:
+    - name: "Update public channel as AdminUser"
+    - delay: 4
+    - url: {template: "$roc_host$roc_uri_prefix/admin/channels/$admin_public_channel_id_1"}
+    - method: 'PUT'
+    - body: {template: '{"name": "Test Admin Create Public Channel 1",
+                      "description": "Test Admin Create Public Channel Description",
+                      "channelType": "public",
+                      "subscribers": ["$user_id_5"],
+                      "managers": ["$user_id_1", "invalidid"]}'
+    }
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $servicesAdminToken"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Updated Admin Public Channel as Managers"
+    - delay: 4
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$admin_public_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_5'}}
+
+- test:
+      - name: "Add List of Subscriber in public channel as AdminUser"
+      - delay: 2
+      - url: {template: "$roc_host$roc_uri_prefix/admin/channels/$admin_public_channel_id_1/subscribers"}
+      - method: 'POST'
+      - body: {template: '{"subscribers": ["$user_id_1", "$user_id_2", "$user_id_3", "$user_id_4"]}'
+      }
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $servicesAdminToken"}}
+      - expected_status: [202]
+
+- test:
+      - name: "Get Updated Admin Public Channel as Managers"
+      - delay: 2
+      - url: {template: "$roc_host$roc_uri_prefix/channels/$admin_public_channel_id_1"}
+      - method: 'GET'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+            - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_2'}}
+            - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_3'}}
+            - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_4'}}
+            - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_5'}}
+
+- test:
+      - name: "Add List of Subscriber in public channel as AdminUser"
+      - delay: 2
+      - url: {template: "$roc_host$roc_uri_prefix/admin/channels/$admin_public_channel_id_1/subscribers"}
+      - method: 'POST'
+      - body: {template: '{"subscribers": ["$user_id_1", "$user_id_2", "$user_id_3", "$user_id_4"]}'
+      }
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $servicesAdminToken"}}
+      - expected_status: [202]
+
+- test:
+      - name: "Get Updated Admin Public Channel as Managers"
+      - delay: 2
+      - url: {template: "$roc_host$roc_uri_prefix/channels/$admin_public_channel_id_1"}
+      - method: 'GET'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+            - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_2'}}
+            - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_3'}}
+            - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_4'}}
+            - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_5'}}
+
+- test:
+      - name: "Update public channel as AdminUser"
+      - delay: 4
+      - url: {template: "$roc_host$roc_uri_prefix/admin/channels/$admin_public_channel_id_1"}
+      - method: 'PUT'
+      - body: {template: '{"name": "Test Admin Create Public Channel 1",
+                      "description": "Test Admin Create Public Channel Description",
+                      "channelType": "public",
+                      "subscribers": ["$user_id_5"],
+                      "managers": ["$user_id_1", "invalidid"]}'
+      }
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $servicesAdminToken"}}
+      - expected_status: [202]
+
+- test:
+      - name: "Get Updated Admin Public Channel as Managers"
+      - delay: 4
+      - url: {template: "$roc_host$roc_uri_prefix/channels/$admin_public_channel_id_1"}
+      - method: 'GET'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+            - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+            - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_5'}}
+
+- test:
+      - name: "Get user1"
+      - url: {template: "$roc_host$roc_uri_prefix/me"}
+      - method: 'GET'
+      - delay: 1
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.channels", comparator: "contains", expected: {template: '$admin_public_channel_id_1'}}
+
+- test:
+    - name: "Get user2"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.channels", comparator: "length_eq", expected: 0}
+
+- test:
+      - name: "Get user3"
+      - url: {template: "$roc_host$roc_uri_prefix/me"}
+      - method: 'GET'
+      - delay: 1
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.channels", comparator: "length_eq", expected: 0}
+
+- test:
+      - name: "Get user4"
+      - url: {template: "$roc_host$roc_uri_prefix/me"}
+      - method: 'GET'
+      - delay: 1
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_4"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.channels", comparator: "length_eq", expected: 0}
+
+- test:
+      - name: "Get user5"
+      - url: {template: "$roc_host$roc_uri_prefix/me"}
+      - method: 'GET'
+      - delay: 1
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_5"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.channels", comparator: "contains", expected: {template: '$admin_public_channel_id_1'}}
+
+
+# create channels
+# create channels
+# create channels
+
+- test:
+    - name: "Create A Public Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/channels"}
+    - method: 'POST'
+    - body: {template: '{"name": "Public Channel 1", "description": "Test Public Channel", "channelType": "public"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+    - extract_binds:
+        - 'public_channel_id_1': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create  Public Channel 2"
+    - url: {template: "$roc_host$roc_uri_prefix/channels"}
+    - method: 'POST'
+    - body: {template: '{"name": "Public Channel 2", "description": "Test Public Channel 2", "channelType": "public"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+    - extract_binds:
+        - 'public_channel_id_2': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create A Private Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/channels"}
+    - method: 'POST'
+    - body: {template: '{"name": "private Channel 1", "description": "Test Private Channel", "channelType": "private"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+    - extract_binds:
+        - 'private_channel_id_1': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create A Invisible Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/channels"}
+    - method: 'POST'
+    - body: {template: '{"name": "Invisible Channel 1", "description": "Test Invisible Channel", "channelType": "invisible"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+    - extract_binds:
+        - 'invisible_channel_id_1': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create A Public-Announcement Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/channels"}
+    - method: 'POST'
+    - body: {template: '{"name": "Public-Announcement Channel 1", "description": "Test Public-Announcement Channel", "channelType": "public-announcement"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+    - extract_binds:
+        - 'public_announcement_channel_id_1': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create A Invisible-Announcement Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/channels"}
+    - method: 'POST'
+    - body: {template: '{"name": "Invisible-Announcement Channel 1", "description": "Test Invisible-Announcement Channel", "channelType": "invisible-announcement"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+    - extract_binds:
+        - 'invisible_announcement_channel_id_1': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create A Private-Announcement Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/channels"}
+    - method: 'POST'
+    - body: {template: '{"name": "Private-Announcement Channel 1", "description": "Test Private-Announcement Channel", "channelType": "private-announcement"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+    - extract_binds:
+        - 'private_announcement_channel_id_1': {jsonpath_mini: 'content.id'}
+
+# get channel with channel id
+# get channel with channel id
+# get channel with channel id
+
+- test:
+    - name: "Get Public Channel as Managers"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "ne", expected: null}
+        - compare: {jsonpath_mini: "content.joinRequests", comparator: "ne", expected:  null}
+        - compare: {jsonpath_mini: "content.invitees", comparator: "ne", expected: null}
+
+- test:
+    - name: "Get Public Channel as Not Subscribed User"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "eq", expected: null}
+
+- test:
+    - name: "Get Private Channel as Managers"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$private_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "ne", expected: null}
+        - compare: {jsonpath_mini: "content.joinRequests", comparator: "ne", expected:  null}
+        - compare: {jsonpath_mini: "content.invitees", comparator: "ne", expected: null}
+
+#todo: get private channel as subscribed(but not managers) user
+- test:
+    - name: "Get Private Channel as Not Subscribed User"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$private_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.managers", comparator: "eq", expected: null}
+        - compare: {jsonpath_mini: "content.owners", comparator: "eq", expected: null}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "eq", expected: null}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "eq", expected: null}
+
+- test:
+    - name: "Get Invisible Channel as Managers"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$invisible_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "ne", expected: null}
+        - compare: {jsonpath_mini: "content.joinRequests", comparator: "ne", expected:  null}
+        - compare: {jsonpath_mini: "content.invitees", comparator: "ne", expected: null}
+
+- test:
+    - name: "Get Public-Announcement Channel as Managers"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_announcement_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "ne", expected: null}
+        - compare: {jsonpath_mini: "content.joinRequests", comparator: "ne", expected:  null}
+        - compare: {jsonpath_mini: "content.invitees", comparator: "ne", expected: null}
+
+- test:
+    - name: "Get Private-Announcement Channel as Managers"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$private_announcement_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "ne", expected: null}
+        - compare: {jsonpath_mini: "content.joinRequests", comparator: "ne", expected:  null}
+        - compare: {jsonpath_mini: "content.invitees", comparator: "ne", expected: null}
+
+- test:
+    - name: "Get Invisible-Announcement Channel as Managers"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$invisible_announcement_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "ne", expected: null}
+        - compare: {jsonpath_mini: "content.joinRequests", comparator: "ne", expected:  null}
+        - compare: {jsonpath_mini: "content.invitees", comparator: "ne", expected: null}
+
+- test:
+    - name: "Get Invalid Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/shfdksjdhfsdk7342747234"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [404]
+
+- test:
+    - name: "Get Public Channel with Invalid Token"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token InvalidToken"}}
+    - expected_status: [401]
+
+# announcement channel message test
+
+- test:
+  - name: "Create public announcement channel as AdminUser"
+  - delay:  1
+  - url: {template: "$roc_host$roc_uri_prefix/admin/create-channel"}
+  - method: 'POST'
+  - body: {template: '{"name": "Test Admin Create Public Announcement Channel 1",
+                      	"description": "Test Admin Create Public Announcement Channel Description",
+                      	"channelType": "public-announcement",
+                      	"subscribers": ["$user_id_1"],
+                      	"managers": ["$user_id_5"]}'
+  }
+  - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $servicesAdminToken"}}
+  - expected_status: [202]
+  - extract_binds:
+    - 'admin_public_announcement_channel_id_1': {jsonpath_mini: 'content.id'}
+
+- test:
+  - name: "Get Admin Public Announcement Channel as Managers"
+  - url: {template: "$roc_host$roc_uri_prefix/channels/$admin_public_announcement_channel_id_1"}
+  - method: 'GET'
+  - delay:  1
+  - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_5"}}
+  - expected_status: [200]
+  - validators:
+    - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_5'}}
+    - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_5'}}
+    - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+
+- test:
+  - name: "Create Message User 1(Normal User) to Admin Public Announcement Channel"
+  - url: {template: "$roc_host$roc_uri_prefix/messages"}
+  - method: 'POST'
+  - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+  - body: {template: '{"title": "Hi Announcement Channel",
+                         "body": "Hello Public Announcement Channel",
+                         "receiver": null,
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": "$admin_public_announcement_channel_id_1"}'}
+  - expected_status: [403]
+
+- test:
+  - name: "Create Message User 5(Manager User) to Admin Public Announcement Channel"
+  - url: {template: "$roc_host$roc_uri_prefix/messages"}
+  - method: 'POST'
+  - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_5"}}
+  - body: {template: '{"title": "Hi Announcement Channel",
+                         "body": "Hello Public Announcement Channel",
+                         "receiver": null,
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": "$admin_public_announcement_channel_id_1"}'}
+  - expected_status: [202]
+
+- test:
+  - name: "List Admin Public Announcement Channel Messages as User 1"
+  - url: {template: "$roc_host$roc_uri_prefix/messages?channel=$admin_public_announcement_channel_id_1"}
+  - method: 'GET'
+  - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+  - expected_status: [200]
+
+# list channel
+# list channel
+# list channel
+
+- test:
+    - name: "List All Channels"
+    - url: {template: "$roc_host$roc_uri_prefix/channels"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$public_channel_id_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$private_channel_id_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$invisible_channel_id_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$public_announcement_channel_id_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$private_announcement_channel_id_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$invisible_announcement_channel_id_1"}}
+
+- test:
+    - name: "List Private Channels"
+    - url: {template: "$roc_host$roc_uri_prefix/channels?type=private"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$private_channel_id_1"}}
+
+- test:
+    - name: "List Public Channels"
+    - url: {template: "$roc_host$roc_uri_prefix/channels?type=public"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$public_channel_id_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$public_channel_id_2"}}
+
+# update channel
+# update channel
+# update channel
+
+- test:
+    - name: "Update Public Channel Name and Description"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_channel_id_1"}
+    - method: 'PUT'
+    - body: {template: '{"name": "Updated Public Channel 1", "description": "Updated Test Public Channel", "channelType": "public"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Updated Public Channel as Managers"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_channel_id_1"}
+    - method: 'GET'
+    - delay:  1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Updated Public Channel 1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Updated Test Public Channel"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "public"}}
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "ne", expected: null}
+        - compare: {jsonpath_mini: "content.joinRequests", comparator: "ne", expected:  null}
+        - compare: {jsonpath_mini: "content.invitees", comparator: "ne", expected: null}
+
+# public_channel_id_1 channel type changed public to private and variable name changed public_channel_id_1 to new_private_channel_id_1
+- test:
+    - name: "Update Channel TYPE Public to Private"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_channel_id_1"}
+    - method: 'PUT'
+    - body: {template: '{"name": "Updated Public Channel 1", "description": "Updated Test Public Channel", "channelType": "private"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Updated (Public to Private) Channel as Managers"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - delay:  1
+    - extract_binds:
+        - 'new_private_channel_id_1': {jsonpath_mini: 'content.id'}
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Updated Public Channel 1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Updated Test Public Channel"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "private"}}
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "ne", expected:  null}
+        - compare: {jsonpath_mini: "content.joinRequests", comparator: "ne", expected:  null}
+        - compare: {jsonpath_mini: "content.invitees", comparator: "ne", expected:  null}
+
+
+# delete channel
+# delete channel
+# delete channel
+
+
+- test:
+    - name: "Delete Public Announcement Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_announcement_channel_id_1"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Deleted Public Announcement Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_announcement_channel_id_1"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [404]
+
+
+
+
+
+### INVITE TEST
+### INVITE TEST
+### INVITE TEST
+
+###join request to private channel
+###join request to private channel
+###join request to private channel
+
+- test:
+    - name: "Join Request 1(user 2) to Private Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - body: {template: '{"invitee": null,
+                        "channel": "$new_private_channel_id_1",
+                        "inviteMessage": "I am user 2. I want to join this channel",
+                        "approve": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'pc_join_request_id_1': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Join Request 2(user 3) to Private Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - body: {template: '{"invitee": null,
+                        "channel": "$new_private_channel_id_1",
+                        "inviteMessage": "I am user 3. I want to join this channel",
+                        "approve": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'pc_join_request_id_2': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Join Request 3(user 5) to Private Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_5"}}
+    - body: {template: '{"invitee": null,
+                        "channel": "$new_private_channel_id_1",
+                        "inviteMessage": "I am user 5. I want to join this channel",
+                        "approve": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'pc_join_request_id_3': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Join Request 4(user 6) to Private Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_6"}}
+    - body: {template: '{"invitee": null,
+                        "channel": "$new_private_channel_id_1",
+                        "inviteMessage": "I am user 6. I want to join this channel",
+                        "approve": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'pc_join_request_id_4': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Join Request 5(user 4) to Private Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_4"}}
+    - body: {template: '{"invitee": null,
+                        "channel": "$new_private_channel_id_1",
+                        "inviteMessage": "I am user 4. I want to join this channel",
+                        "approve": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'pc_join_request_id_5': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Join Request 6(user 9) to Private Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_9"}}
+    - body: {template: '{"invitee": null,
+                        "channel": "$new_private_channel_id_1",
+                        "inviteMessage": "I am user 9. I want to join this channel",
+                        "approve": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'pc_join_request_id_6': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Join Request 7(user 10) to Private Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_10"}}
+    - body: {template: '{"invitee": null,
+                        "channel": "$new_private_channel_id_1",
+                        "inviteMessage": "I am user 10. I want to join this channel",
+                        "approve": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'pc_join_request_id_7': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Invite User 3 to Join Private Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"invitee": "$user_id_3",
+                        "channel": "$new_private_channel_id_1",
+                        "inviteMessage": "I want you to join our channel",
+                        "approve": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'pc_invite_id_1': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Invite User 7 to Join Private Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"invitee": "$user_id_7",
+                        "channel": "$new_private_channel_id_1",
+                        "inviteMessage": "I want you to join our channel",
+                        "approve": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'pc_invite_id_2': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Invite User 8 to Join Private Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"invitee": "$user_id_8",
+                        "channel": "$new_private_channel_id_1",
+                        "inviteMessage": "I want you to join our channel",
+                        "approve": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'pc_invite_id_3': {jsonpath_mini: 'content.id'}
+
+# todo: list all invite with invite_id after redis & riak store implementation
+##join a public channel
+##join a public channel
+##join a public channel
+
+- test:
+    - name: "Join to Public Channel as User 2"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - body: {template: '{"invitee": null,
+                        "channel": "$public_channel_id_2",
+                        "inviteMessage": "I am user 2. I want to join this channel",
+                        "approve": null}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Join to Public Channel as User 4"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_4"}}
+    - body: {template: '{"invitee": null,
+                        "channel": "$public_channel_id_2",
+                        "inviteMessage": "I am user 4. I want to join this channel",
+                        "approve": null}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Join to Public Channel as User 10"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_10"}}
+    - body: {template: '{"invitee": null,
+                        "channel": "$public_channel_id_2",
+                        "inviteMessage": "I am user 10. I want to join this channel",
+                        "approve": null}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Join to Public Channel as User 6"
+    - url: {template: "$roc_host$roc_uri_prefix/invites"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_6"}}
+    - body: {template: '{"invitee": null,
+                        "channel": "$public_channel_id_2",
+                        "inviteMessage": "I am user 6. I want to join this channel",
+                        "approve": null}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Private Channel Join Request 1 "
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_join_request_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.inviteMessage", comparator: "eq", expected: {template: "I am user 2. I want to join this channel"}}
+        - compare: {jsonpath_mini: "content.id", comparator: "eq", expected: {template: "$pc_join_request_id_1"}}
+        - compare: {jsonpath_mini: "content.inviter", comparator: "eq", expected: {template: "$user_id_2"}}
+
+- test:
+    - name: "List Invites"
+    - url: {template: "$roc_host$roc_uri_prefix/invites?invite=$pc_join_request_id_1&invite=$pc_join_request_id_2&invite=$pc_invite_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.0.id", comparator: "eq", expected: {template: "$pc_join_request_id_1"}}
+        - compare: {jsonpath_mini: "content.1.id", comparator: "eq", expected: null}
+        - compare: {jsonpath_mini: "content.2.id", comparator: "eq", expected: null}
+
+# approve and reject channel join request
+# approve and reject channel join request
+# approve and reject channel join request
+
+- test:
+    - name: "Accept Private Channel Join Request 1 as Manager"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_join_request_id_1"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"invitee": null,
+                        "channel": null,
+                        "inviteMessage": null,
+                        "approve": "approved"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Get user2"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.channels", comparator: "contains", expected: {template: '$new_private_channel_id_1'}}
+        - compare: {jsonpath_mini: "content.channels", comparator: "contains", expected: {template: '$public_channel_id_2'}}
+
+- test:
+    - name: "Get Approved Private Channel Join Request  "
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_join_request_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [404]
+
+- test:
+    - name: "Reject Private Channel Join Request 3 as Manager"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_join_request_id_3"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"invitee": null,
+                        "channel": null,
+                        "inviteMessage": null,
+                        "approve": "rejected"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Rejected Private Channel Join Request  "
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_join_request_id_3"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [404]
+
+- test:
+    - name: "Accept Private Channel Join Request 4 as Manager"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_join_request_id_4"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"invitee": null,
+                        "channel": null,
+                        "inviteMessage": null,
+                        "approve": "approved"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Accept Private Channel Join Request 5 as Manager"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_join_request_id_5"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"invitee": null,
+                        "channel": null,
+                        "inviteMessage": null,
+                        "approve": "approved"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Accept Private Channel Join Request 6 as Manager"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_join_request_id_6"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"invitee": null,
+                        "channel": null,
+                        "inviteMessage": null,
+                        "approve": "approved"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Accept Private Channel Join Request 7 as Manager"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_join_request_id_7"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"invitee": null,
+                        "channel": null,
+                        "inviteMessage": null,
+                        "approve": "approved"}'}
+    - expected_status: [202]
+
+# approve and reject channel invites
+# approve and reject channel invites
+# approve and reject channel invites
+
+- test:
+    - name: "Accept Private Channel Invite 1 as User 3"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_invite_id_1"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - body: {template: '{"invitee": null,
+                        "channel": null,
+                        "inviteMessage": null,
+                        "approve": "approved"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Get user3"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 6
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.channels", comparator: "contains", expected: {template: '$new_private_channel_id_1'}}
+
+- test:
+    - name: "Get Approved Private Channel Invite"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_invite_id_1"}
+    - delay: 2
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [404]
+
+- test:
+    - name: "Reject Private Channel Invite 2 as User 7"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_invite_id_2"}
+    - method: 'PUT'
+    - delay: 2
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_7"}}
+    - body: {template: '{"invitee": null,
+                        "channel": null,
+                        "inviteMessage": null,
+                        "approve": "rejected"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Rejected Private Channel Invite"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_invite_id_2"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [404]
+
+# delete channel join request
+# delete channel join request
+# delete channel join request
+
+- test:
+    - name: "Delete Private Channel Join Request as Stranger "
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_join_request_id_2"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - expected_status: [403]
+# todo: delete join request as subscriber
+- test:
+    - name: "Delete Private Channel Join Request"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_join_request_id_2"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Deleted Private Channel Join Request  "
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_join_request_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [404]
+
+# delete channel invite
+# delete channel invite
+# delete channel invite
+
+- test:
+    - name: "Delete Private Channel Invite as Subscriber"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_invite_id_3"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - expected_status: [403]
+
+- test:
+    - name: "Delete Private Channel Invite as Manager"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_invite_id_3"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Deleted Private Channel Invited"
+    - url: {template: "$roc_host$roc_uri_prefix/invites/$pc_invite_id_3"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [404]
+
+# delete subscriber in new_private_channel_1
+# delete subscriber in new_private_channel_1
+# delete subscriber in new_private_channel_1
+
+- test:
+    - name: "Get user2"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.channels", comparator: "contains", expected: {template: '$new_private_channel_id_1'}}
+
+- test:
+    - name: "Delete User 2 in Private Channel as Managers"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$new_private_channel_id_1/subscribers/$user_id_2"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+# todo: look at channel subscriber for deleted user 2 after riak redis store impl.
+
+- test:
+    - name: "Get user2"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_2"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.channels", comparator: "not_contains", expected: {template: '$new_private_channel_id_1'}}
+
+- test:
+    - name: "Get user6"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_6"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.channels", comparator: "contains", expected: {template: '$new_private_channel_id_1'}}
+
+- test:
+    - name: "Delete User 6 in Private Channel as User 6"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$new_private_channel_id_1/subscribers/$user_id_6"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_6"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Get user6"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_6"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.channels", comparator: "not_contains", expected: {template: '$new_private_channel_id_1'}}
+
+- test:
+    - name: "Delete User 4 in Private Channel as Subscriber"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$new_private_channel_id_1/subscribers/$user_id_4"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_9"}}
+    - expected_status: [400]
+
+# banned channel resource test
+# banned channel resource test
+# banned channel resource test
+
+
+- test:
+    - name: "Ban User 4 as Manager"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-channels"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"channel": "$new_private_channel_id_1",
+                        "subscriber": "$user_id_4"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Ban User 6(Not Subscriber) as Manager"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-channels"}
+    - method: 'POST'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"channel": "$new_private_channel_id_1",
+                        "subscriber": "$user_id_6"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Ban User 3 as Subscriber"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-channels"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_10"}}
+    - body: {template: '{"channel": "$new_private_channel_id_1",
+                        "subscriber": "$user_id_3"}'}
+    - expected_status: [400]
+
+- test:
+    - name: "Ban Channel as Not Subscriber(User 6)"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-channels"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_6"}}
+    - body: {template: '{"channel": "$new_private_channel_id_1",
+                        "subscriber": null}'}
+    - expected_status: [400]
+
+- test:
+    - name: "Ban Channel Invalid Param"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-channels"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"channel": null,
+                        "subscriber": null}'}
+    - expected_status: [400]
+
+- test:
+    - name: "Get user4"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_4"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.channels", comparator: "not_contains", expected: {template: '$new_private_channel_id_1'}}
+
+- test:
+    - name: "Get Private Channel as Managers(for ban user from channel operation)"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - delay: 1
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Updated Public Channel 1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Updated Test Public Channel"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "private"}}
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "contains", expected: {template: '$user_id_4'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "contains", expected: {template: '$user_id_6'}}
+
+- test:
+    - name: "Ban New Private Channel 1 as User 10"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-channels"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_10"}}
+    - body: {template: '{"channel": "$new_private_channel_id_1",
+                        "subscriber": null}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Get user10 for ban channel operation"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_10"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.bannedChannels", comparator: "contains", expected: {template: '$new_private_channel_id_1'}}
+        - compare: {jsonpath_mini: "content.channels", comparator: "not_contains", expected: {template: '$new_private_channel_id_1'}}
+
+- test:
+    - name: "Get Private Channel as Managers(for ban channel from user operation)"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - delay: 1
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Updated Public Channel 1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Updated Test Public Channel"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "private"}}
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "contains", expected: {template: '$user_id_4'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "contains", expected: {template: '$user_id_6'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "not_contains", expected: {template: '$user_id_10'}}
+
+# unban a user from new private channel 1
+- test:
+    - name: "Unban user 4 as a channel Manager"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-channels/channels/$new_private_channel_id_1/subscribers/$user_id_4"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Private Channel as Managers(for unban user from channel operation)"
+    - url: {template: "$roc_host$roc_uri_prefix/channels/$public_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - delay: 1
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Updated Public Channel 1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Updated Test Public Channel"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "private"}}
+        - compare: {jsonpath_mini: "content.managers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.owners", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "contains", expected: {template: '$user_id_1'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "not_contains", expected: {template: '$user_id_4'}}
+        - compare: {jsonpath_mini: "content.bannedSubscribers", comparator: "contains", expected: {template: '$user_id_6'}}
+        - compare: {jsonpath_mini: "content.subscribers", comparator: "not_contains", expected: {template: '$user_id_10'}}
+
+- test:
+    - name: "Unban New Private Chanel as User 10"
+    - url: {template: "$roc_host$roc_uri_prefix/banned-channels/channels/$new_private_channel_id_1/subscribers/$user_id_10"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_10"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Get user10 (for unban channel operation)"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_10"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", comparator: "not_contains", expected: {template: '$new_private_channel_id_1'}}
+
+
+# status resource test
+# status resource test
+# status resource test
+
+- test:
+    - name: "Create Subscriber's status"
+    - url: {template: "$roc_host$roc_uri_prefix/status"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"statusMessage": "I am user 1",
+                         "behavioralStatus": "online",
+                         "statusIntentional": null,
+                         "lastActivityTime": "2017-08-20T08:54:56.750Z00:00"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Create Subscriber's status"
+    - url: {template: "$roc_host$roc_uri_prefix/status"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_5"}}
+    - body: {template: '{"statusMessage": "Hello. I am user 5",
+                         "behavioralStatus": "online",
+                         "statusIntentional": null,
+                         "lastActivityTime": "2017-08-20T08:54:56.750Z00:00"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Update Subscriber's status"
+    - url: {template: "$roc_host$roc_uri_prefix/status"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"statusMessage": "Hello. I am user 001",
+                         "behavioralStatus": "online",
+                         "statusIntentional": null,
+                         "lastActivityTime": "2017-08-20T08:54:56.750Z00:00"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "List Subscriber's status"
+    - url: {template: "$roc_host$roc_uri_prefix/status"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+
+
+## message resource test
+## message resource test
+## message resource test
+## message resource test
+
+- test:
+    - name: "Create Message Bad Request with No Receiver or Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"title": "Hi",
+                         "body": "Hello World",
+                         "receiver": null,
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": null}'}
+    - expected_status: [400]
+
+- test:
+    - name: "Create Message Bad Request with Both Receiver and Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"title": "Hi",
+                         "body": "Hello World",
+                         "receiver": "asd",
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": "asd"}'}
+    - expected_status: [400]
+
+- test:
+    - name: "Create Message Bad Request with Both Receiver and Channel"
+    - url: {template: "$roc_host$roc_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"title": "Hi",
+                         "body": "Hello World",
+                         "receiver": "$user_id_1",
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": "asd"}'}
+    - expected_status: [400]
+
+- test:
+    - name: "Create Message User 1 to User 5"
+    - url: {template: "$roc_host$roc_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"title": "Hi",
+                         "body": "Hello World",
+                         "receiver": "$user_id_5",
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": null}'}
+    - expected_status: [202]
+    - validators:
+      - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+    - extract_binds:
+      - 'private_message_1_5': {jsonpath_mini: 'content.id'}
+
+
+- test:
+    - name: "Create Message User 5 to User 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_5"}}
+    - body: {template: '{"title": "Hi2",
+                         "body": "Hello World2",
+                         "receiver": "$user_id_1",
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": null}'}
+    - expected_status: [202]
+    - validators:
+      - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+    - extract_binds:
+      - 'private_message_5_1': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Get Single Message with Bad Request (Non-alphanumeric Message Id)"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/invalid-message-id-non-alphanumeric"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "Get Single Message with Object Not Found"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/invalidmessageidnotfound"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [404]
+
+
+- test:
+    - name: "Get Single Message as User 1 - Message 1 to 5"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/$private_message_1_5"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jsonpath_mini: "content.trackingId", comparator: "eq", expected: null}
+      - compare: {jsonpath_mini: "content.id", comparator: "eq", expected: {template: '$private_message_1_5'}}
+
+- test:
+    - name: "Get Single Message as User 1 - Message 5 to 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/$private_message_5_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jsonpath_mini: "content.trackingId", comparator: "eq", expected: null}
+      - compare: {jsonpath_mini: "content.id", comparator: "eq", expected: {template: '$private_message_5_1'}}
+
+- test:
+    - name: "Get Single Message as User 5 - Message 1 to 5"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/$private_message_1_5"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_5"}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jsonpath_mini: "content.trackingId", comparator: "eq", expected: null}
+      - compare: {jsonpath_mini: "content.id", comparator: "eq", expected: {template: '$private_message_1_5'}}
+
+- test:
+    - name: "Get Single Message as User 5 - Message 5 to 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/$private_message_5_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_5"}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jsonpath_mini: "content.trackingId", comparator: "eq", expected: null}
+      - compare: {jsonpath_mini: "content.id", comparator: "eq", expected: {template: '$private_message_5_1'}}
+
+- test:
+    - name: "Get Messages btwn Users 1 and 5 as 1 with Bad Request 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages?page_size=1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "Get Messages btwn Users 1 and 5 as 1 with Bad Request 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages?page_size=1&subscriber=a&channel=b"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "Get Messages btwn Users 1 and 5 as 1 with Bad Request 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages?page_size=1&subscriber=a"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "Get Messages btwn Users 1 and 5 as 1 with Bad Request 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages?page_size=1&channel=b"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "Get Messages btwn Users 1 and 5 as 1 with page size 1 page 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages?page_size=1&subscriber=$user_id_5"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jsonpath_mini: "content.continuation", comparator: "ne", expected: null}
+      - compare: {jsonpath_mini: "meta.params.page_size", comparator: "eq", expected: 1}
+      - compare: {jsonpath_mini: "content.result", comparator: "count_eq", expected: 1}
+    - extract_binds:
+      - 'message_continuation': {jsonpath_mini: 'content.continuation'}
+
+- test:
+    - name: "Get Messages btwn Users 1 and 5 as 1 with page size 1 page 2"
+    - url: {template: "$roc_host$roc_uri_prefix/messages?page_size=1&subscriber=$user_id_5&continuation=$message_continuation"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jsonpath_mini: "content.continuation", comparator: "ne", expected: null}
+      - compare: {jsonpath_mini: "meta.params.page_size", comparator: "eq", expected: 1}
+      - compare: {jsonpath_mini: "content.result", comparator: "count_eq", expected: 1}
+    - extract_binds:
+      - 'message_continuation': {jsonpath_mini: 'content.continuation'}
+
+- test:
+    - name: "Get Messages btwn Users 1 and 5 as 1 with page size 1 page 3"
+    - url: {template: "$roc_host$roc_uri_prefix/messages?page_size=1&subscriber=$user_id_5&continuation=$message_continuation"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jsonpath_mini: "content.continuation", comparator: "eq", expected: null}
+      - compare: {jsonpath_mini: "meta.params.page_size", comparator: "eq", expected: 1}
+      - compare: {jsonpath_mini: "content.result", comparator: "count_eq", expected: 0}
+
+- test:
+    - name: "Get Messages btwn Users 1 and 5 as 1 with page size 2 page 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages?page_size=2&subscriber=$user_id_5"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jsonpath_mini: "content.continuation", comparator: "ne", expected: null}
+      - compare: {jsonpath_mini: "meta.params.page_size", comparator: "eq", expected: 2}
+      - compare: {jsonpath_mini: "content.result", comparator: "count_eq", expected: 2}
+    - extract_binds:
+      - 'message_continuation': {jsonpath_mini: 'content.continuation'}
+
+- test:
+    - name: "Get Messages btwn Users 1 and 5 as 1 with page size 2 page 2"
+    - url: {template: "$roc_host$roc_uri_prefix/messages?page_size=2&subscriber=$user_id_5&continuation=$message_continuation"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jsonpath_mini: "content.continuation", comparator: "eq", expected: null}
+      - compare: {jsonpath_mini: "meta.params.page_size", comparator: "eq", expected: 2}
+      - compare: {jsonpath_mini: "content.result", comparator: "count_eq", expected: 0}
+
+- test:
+    - name: "Get Messages btwn Users 1 and 5 as 1 with page size 3"
+    - url: {template: "$roc_host$roc_uri_prefix/messages?page_size=3&subscriber=$user_id_5"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jsonpath_mini: "content.continuation", comparator: "eq", expected: null}
+      - compare: {jsonpath_mini: "meta.params.page_size", comparator: "eq", expected: 3}
+      - compare: {jsonpath_mini: "content.result", comparator: "count_eq", expected: 2}
+
+- test:
+    - name: "Update Single Message as User 1 - Message 1 to 5 with Bad Request 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/$private_message_1_5"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"title": "Updated Hi",
+                     "body": "Updated Hello World",
+                     "receiver": "$user_id_5",
+                     "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                     "channel": null}'}
+    - expected_status: [400]
+
+- test:
+    - name: "Update Single Message as User 1 - Message 1 to 5 with Bad Request 2"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/$private_message_1_5"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"title": "Updated Hi",
+                     "body": "Updated Hello World",
+                     "receiver": null,
+                     "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                     "channel": "asd"}'}
+    - expected_status: [400]
+
+- test:
+    - name: "Update Single Message as User 1 - Message 1 to 5 with Bad Request 3"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/$private_message_1_5"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"title": "Updated Hi",
+                     "body": "Updated Hello World",
+                     "receiver": "$user_id_5",
+                     "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                     "channel": "asd"}'}
+    - expected_status: [400]
+
+- test:
+    - name: "Update Single Message as User 1 - Message 1 to 5"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/$private_message_1_5"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"title": "Updated Hi",
+                     "body": "Updated Hello World",
+                     "receiver": null,
+                     "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                     "channel": null}'}
+    - expected_status: [202]
+    - validators:
+      - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+      - compare: {jsonpath_mini: "content.id", comparator: "eq", expected: {template: '$private_message_1_5'}}
+      - compare: {jsonpath_mini: "content.title", comparator: "eq", expected: "Updated Hi"}
+
+- test:
+    - name: "Get Single Message as User 1 - Message 1 to 5 after update"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/$private_message_1_5"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jsonpath_mini: "content.trackingId", comparator: "eq", expected: null}
+      - compare: {jsonpath_mini: "content.id", comparator: "eq", expected: {template: '$private_message_1_5'}}
+      - compare: {jsonpath_mini: "content.title", comparator: "eq", expected: "Updated Hi"}
+
+- test:
+    - name: "Delete Message User 1 to 5 as User 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/$private_message_1_5"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Single Message as User 1 - Message 1 to 5 after delete"
+    - url: {template: "$roc_host$roc_uri_prefix/messages/$private_message_1_5"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [404]
+
+- test:
+    - name: "Create Message User 1 to Channel 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - body: {template: '{"title": "Hi Channel",
+                         "body": "Hello Channel",
+                         "receiver": null,
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": "$public_channel_id_1"}'}
+    - expected_status: [202]
+    - validators:
+      - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+    - extract_binds:
+      - 'channel_message_user_1': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create Message User 3 to Channel 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_3"}}
+    - body: {template: '{"title": "Hi Channel",
+                         "body": "Hello Channel",
+                         "receiver": null,
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": "$public_channel_id_1"}'}
+    - expected_status: [202]
+    - validators:
+      - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+    - extract_binds:
+      - 'channel_message_user_3': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create Message User 9 to Channel 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_9"}}
+    - body: {template: '{"title": "Hi Channel",
+                         "body": "Hello Channel",
+                         "receiver": null,
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": "$public_channel_id_1"}'}
+    - expected_status: [202]
+    - validators:
+      - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+    - extract_binds:
+      - 'channel_message_user_9': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Get Messages of Channel 1 as User 1"
+    - url: {template: "$roc_host$roc_uri_prefix/messages?channel=$public_channel_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+    - expected_status: [200]
+    - validators:
+      - compare: {jsonpath_mini: "meta.params.page_size", comparator: "eq", expected: 10}
+      - compare: {jsonpath_mini: "content.result", comparator: "count_eq", expected: 3}
+
+### Add contact as Admin User
+-
+- test:
+      - name: "Add contact list to user 1 as Admin User"
+      - delay: 4
+      - url: {template: "$roc_host$roc_uri_prefix/admin/contact"}
+      - method: 'POST'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $servicesAdminToken"}}
+      - body: {template: '{"subscriber_id": "$user_id_1",
+                         "contactListToAdd": ["$user_id_2", "$user_id_3", "$user_id_4", "$user_id_5", "$user_id_6"]}'}
+      - expected_status: [202]
+
+- test:
+      - name: "Get User1"
+      - url: {template: "$roc_host$roc_uri_prefix/me"}
+      - method: 'GET'
+      - delay: 4
+      - headers: {template: {"content-type": "application/json", "authorization": "token $consumer_access_token_1"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.contacts", comparator: "contains", expected: {template: '$user_id_2'}}
+            - compare: {jsonpath_mini: "content.contacts", comparator: "contains", expected: {template: '$user_id_3'}}
+            - compare: {jsonpath_mini: "content.contacts", comparator: "contains", expected: {template: '$user_id_4'}}
+            - compare: {jsonpath_mini: "content.contacts", comparator: "contains", expected: {template: '$user_id_5'}}
+            - compare: {jsonpath_mini: "content.contacts", comparator: "contains", expected: {template: '$user_id_6'}}
+
+- test:
+      - name: "Get User2"
+      - url: {template: "$roc_host$roc_uri_prefix/me"}
+      - method: 'GET'
+      - delay: 1
+      - headers: {template: {"content-type": "application/json", "authorization": "token $consumer_access_token_2"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.contacts", comparator: "contains", expected: {template: '$user_id_1'}}
+
+
+
+
+#### Subscriber channel last read messages tests
+
+- test:
+      - delay: 1
+      - name: "Create A Public Channel for last read message test"
+      - url: {template: "$roc_host$roc_uri_prefix/channels"}
+      - method: 'POST'
+      - body: {template: '{"name": "Public Channel 1", "description": "Test Public Channel", "channelType": "public"}'}
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - expected_status: [202]
+      - extract_binds:
+            - 'lrm_public_channel_id_1': {jsonpath_mini: 'content.id'}
+
+- test:
+      - delay: 3
+      - name: "Get User 1"
+      - url: {template: "$roc_host$roc_uri_prefix/me"}
+      - method: 'GET'
+      - delay: 1
+      - headers: {template: {"content-type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - expected_status: [200]
+          # todo: validator eklenecek
+
+- test:
+      - delay: 3
+      - name: "Create Message User 1 to LRM Test Channel 1"
+      - url: {template: "$roc_host$roc_uri_prefix/messages"}
+      - method: 'POST'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - body: {template: '{"title": "Hi Channel",
+                         "body": "Hello Channel",
+                         "receiver": null,
+                         "sentTime": "2018-08-20T08:54:56.750Z00:00",
+                         "channel": "$lrm_public_channel_id_1"}'}
+      - expected_status: [202]
+      - validators:
+            - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+      - extract_binds:
+            - 'lrm_message_id_1': {jsonpath_mini: 'content.id'}
+
+- test:
+      - name: "Create Message User 1 to LRM Test Channel 1"
+      - url: {template: "$roc_host$roc_uri_prefix/messages"}
+      - method: 'POST'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - body: {template: '{"title": "Hi Channel",
+                         "body": "Hello Channel",
+                         "receiver": null,
+                         "sentTime": "2018-08-20T08:54:56.750Z00:00",
+                         "channel": "$lrm_public_channel_id_1"}'}
+      - expected_status: [202]
+      - validators:
+            - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+      - extract_binds:
+            - 'lrm_message_id_2': {jsonpath_mini: 'content.id'}
+
+- test:
+      - name: "Create Message User 1 to LRM Test Channel 1"
+      - url: {template: "$roc_host$roc_uri_prefix/messages"}
+      - method: 'POST'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - body: {template: '{"title": "Hi Channel",
+                         "body": "Hello Channel",
+                         "receiver": null,
+                         "sentTime": "2018-08-20T08:54:56.750Z00:00",
+                         "channel": "$lrm_public_channel_id_1"}'}
+      - expected_status: [202]
+      - validators:
+            - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+      - extract_binds:
+            - 'lrm_message_id_3': {jsonpath_mini: 'content.id'}
+
+- test:
+      - name: "Create Message User 1 to LRM Test Channel 1"
+      - url: {template: "$roc_host$roc_uri_prefix/messages"}
+      - method: 'POST'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - body: {template: '{"title": "Hi Channel",
+                         "body": "Hello Channel",
+                         "receiver": null,
+                         "sentTime": "2018-08-20T08:54:56.750Z00:00",
+                         "channel": "$lrm_public_channel_id_1"}'}
+      - expected_status: [202]
+      - validators:
+            - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+      - extract_binds:
+            - 'lrm_message_id_4': {jsonpath_mini: 'content.id'}
+
+- test:
+      - delay: 2
+      - name: "Get user1 channel lrm_public_channel_id_1 number of unread message with invalid value"
+      - url: {template: "$roc_host$roc_uri_prefix/me/channels/$lrm_public_channel_id_1"}
+      - method: 'GET'
+      - headers: {template: {"content-type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.numberOfUnreadMessage", comparator: "eq", expected: 0}
+
+- test:
+      - delay: 2
+      - name: "Get user1 invalid channel number of unread message with with invalid value"
+      - url: {template: "$roc_host$roc_uri_prefix/me/channels/1323423423423"}
+      - method: 'GET'
+      - headers: {template: {"content-type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - expected_status: [404]
+
+
+- test:
+      - delay: 2
+      - name: "Update User1 Channel lrm_public_channel_id_1 Last Read Message as lrm_message_id_1"
+      - url: {template: "$roc_host$roc_uri_prefix/me/channels/$lrm_public_channel_id_1"}
+      - method: 'PUT'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - body: {template: '{"lastReadMessageId": "$lrm_message_id_1"}'}
+      - expected_status: [202]
+
+- test:
+      - delay: 2
+      - name: "Get User 1"
+      - url: {template: "$roc_host$roc_uri_prefix/me"}
+      - method: 'GET'
+      - headers: {template: {"content-type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - expected_status: [200]
+
+- test:
+      - delay: 2
+      - name: "Get user1 channel lrm_public_channel_id_1 number of unread message"
+      - url: {template: "$roc_host$roc_uri_prefix/me/channels/$lrm_public_channel_id_1"}
+      - method: 'GET'
+      - headers: {template: {"content-type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_1"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.numberOfUnreadMessage", comparator: "eq", expected: 3}
+
+## Contact last read message test
+- test:
+    - name: "Get Me for last read message test - user11"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - delay: 1
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_11"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'user_id_11': {jsonpath_mini: 'content.id'}
+
+- test:
+      - name: "Get Me for last read message test - user12"
+      - url: {template: "$roc_host$roc_uri_prefix/me"}
+      - method: 'GET'
+      - delay: 1
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_12"}}
+      - expected_status: [200]
+      - extract_binds:
+            - 'user_id_12': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Send Contact Request User 11 to User 12"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests"}
+    - method: 'POST'
+    - body: {template: '{"invitee": "$user_id_12", "contactRequestMessage": "I am User 11.Hi there! It would be great to keep in touch with you from now on till the end.", "approve": "not_evaluated"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_11"}}
+    - expected_status: [202]
+    - delay: 1
+
+- test:
+    - name: "Get Me - user12"
+    - url: {template: "$roc_host$roc_uri_prefix/me"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_12"}}
+    - expected_status: [200]
+    - delay: 2
+    - extract_binds:
+        - 'lrm_cr_id_1': {jsonpath_mini: 'content.contactRequestsIn.0'}
+
+- test:
+    - name: "Accept Contact Request to consumer 12"
+    - url: {template: "$roc_host$roc_uri_prefix/contact-requests/$lrm_cr_id_1"}
+    - method: 'PUT'
+    - body: '{"invitee": null, "contactRequestMessage": null, "approve": "approved"}'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_12"}}
+    - delay: 1
+    - expected_status: [202]
+
+- test:
+    - name: "Create Message User 11 to User 12"
+    - url: {template: "$roc_host$roc_uri_prefix/messages"}
+    - delay: 2
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_11"}}
+    - body: {template: '{"title": "Hi",
+                         "body": "Hello World 1",
+                         "receiver": "$user_id_12",
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": null}'}
+    - expected_status: [202]
+    - validators:
+      - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+    - extract_binds:
+      - 'clrm_1': {jsonpath_mini: 'content.id'}
+
+- test:
+      - name: "Create Message User 11 to User 12"
+      - url: {template: "$roc_host$roc_uri_prefix/messages"}
+      - method: 'POST'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_11"}}
+      - body: {template: '{"title": "Hi",
+                         "body": "Hello World 2",
+                         "receiver": "$user_id_12",
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": null}'}
+      - expected_status: [202]
+      - validators:
+            - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+      - extract_binds:
+            - 'clrm_2': {jsonpath_mini: 'content.id'}
+
+- test:
+      - name: "Create Message User 11 to User 12"
+      - url: {template: "$roc_host$roc_uri_prefix/messages"}
+      - method: 'POST'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_11"}}
+      - body: {template: '{"title": "Hi",
+                         "body": "Hello World 3",
+                         "receiver": "$user_id_12",
+                         "sentTime": "2017-08-20T08:54:56.750Z00:00",
+                         "channel": null}'}
+      - expected_status: [202]
+      - validators:
+            - compare: {jsonpath_mini: "content.trackingId", comparator: "ne", expected: null}
+      - extract_binds:
+            - 'clrm_3': {jsonpath_mini: 'content.id'}
+
+- test:
+      - delay: 2
+      - name: "Get number of unread message between user 11 and user 12 as user 12 with invalid value"
+      - url: {template: "$roc_host$roc_uri_prefix/me/contacts/$user_id_11"}
+      - method: 'GET'
+      - headers: {template: {"content-type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_12"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.numberOfUnreadMessage", comparator: "eq", expected: 0}
+
+- test:
+      - delay: 2
+      - name: "Get number of unread message between user 11 and invalid contact"
+      - url: {template: "$roc_host$roc_uri_prefix/me/contacts/123123124234234"}
+      - method: 'GET'
+      - headers: {template: {"content-type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_12"}}
+      - expected_status: [404]
+
+
+- test:
+      - delay: 1
+      - name: "Update User 11 Last Read Direct Message as clrm_1 as User 12"
+      - url: {template: "$roc_host$roc_uri_prefix/me/contacts/$user_id_11"}
+      - method: 'PUT'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_12"}}
+      - body: {template: '{"lastReadMessageId": "$clrm_1"}'}
+      - expected_status: [202]
+
+- test:
+      - delay: 2
+      - name: "Get User 12"
+      - url: {template: "$roc_host$roc_uri_prefix/me"}
+      - method: 'GET'
+      - headers: {template: {"content-type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_12"}}
+      - expected_status: [200]
+
+- test:
+      - delay: 2
+      - name: "Get number of unread message between user 11 and user 12 as user 12"
+      - url: {template: "$roc_host$roc_uri_prefix/me/contacts/$user_id_11"}
+      - method: 'GET'
+      - headers: {template: {"content-type": "application/json", "AUTHORIZATION": "Token $consumer_access_token_12"}}
+      - expected_status: [200]
+      - validators:
+            - compare: {jsonpath_mini: "content.numberOfUnreadMessage", comparator: "eq", expected: 2}
+
+
+
+# TODO: olumsuz durumlar icin testler eklenecek !!!!!
+# TODO: olumsuz durumlar icin testler eklenecek !!!!!
+# TODO: olumsuz durumlar icin testler eklenecek !!!!!
+# TODO: olumsuz durumlar icin testler eklenecek !!!!!
+# TODO: olumsuz durumlar icin testler eklenecek !!!!!
+# TODO: olumsuz durumlar icin testler eklenecek !!!!!
+
+
+
+
+- test:
+    - name: "Delete account "
+    - url: {template: "$saas_host/$saas_uri_prefix/account"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [202]

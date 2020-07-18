@@ -1,0 +1,514 @@
+# -*- python -*-
+# ex: set syntax=python:
+
+from buildbot.plugins import *
+from buildbot.status.builder import SUCCESS, WARNINGS, FAILURE, SKIPPED
+import os
+import hvac
+import consul
+import subprocess
+import json
+
+consul_client = consul.Consul(host="{{ hostvars['worker-01'].ansible_ssh_host }}")
+req_id, vaults = consul_client.health.checks(service='vault')
+passing_and_active_vault_ip_port = [v['ServiceID'][6:] for v in vaults if (v['Status'] == 'passing' and v['ServiceTags'] == ['active'])]
+passing_and_active_vault_ip = passing_and_active_vault_ip_port[0].split(':')[0]
+passing_and_active_vault = ["{}.vault".format(v['Node']) for v in vaults if (v['Status'] == 'passing' and v['ServiceTags'] == ['active'])]
+vault_token = os.getenv('VAULT_TOKEN')
+
+# Connect vault
+os.chmod('/usr/local/share/ca-certificates/ca.cert', 0600)
+os.chmod('/usr/local/share/ca-certificates/vault.key', 0600)
+os.chmod('/usr/local/share/ca-certificates/vault.cert', 0600)
+client = hvac.Client(url='https://{}:8200'.format(passing_and_active_vault[0]),
+ token=vault_token, verify='/usr/local/share/ca-certificates/ca.cert',
+  cert=('/usr/local/share/ca-certificates/vault.cert', '/usr/local/share/ca-certificates/vault.key'))
+
+# Take private_key of zetaopsbot
+
+buildbot = client.read(path='secret/bb')['data']
+bp = buildbot['private_key']
+with open('/root/.ssh/id_rsa', 'w') as f:
+     f.write(bp)
+os.chmod('/root/.ssh/id_rsa', 0600)
+
+postgres = client.read(path='secret/postgres')['data']
+postgres_user = postgres['username']
+postgres_pw = postgres['password']
+index, postgres_data = consul_client.kv.get("service/zopsmpa/leader")
+postgres_host = postgres_data["Value"]
+postgres_db = os.getenv('POSTGRES_DB', 'zopsbb')
+
+bbwww = client.read(path='secret/bbwww')['data']
+bbadmin = bbwww['name']
+bbadminpw = bbwww['pw']
+
+mg = client.read(path='secret/mg')['data']
+mail_user = mg['user']
+mail_pw = mg['pw']
+
+
+saas_host = "http://159.69.31.151:9995"
+push_host = "http://159.69.31.151:9996"
+roc_host = "http://159.69.31.151:9999"
+auth_host = "http://159.69.31.151:9998"
+
+saas_push_auth_host = { "saas_host": saas_host, "push_host": push_host, "auth_host_uri_prefix": "{}/{}".format(auth_host, "v1/auth/token"), "tenant_manager_email": "zopsm_tenant_manager@example.com", "manager_password": "9701262a38954448ad6fbb419b571500"  }
+saas_roc_auth_host = { "saas_host": saas_host, "roc_host": roc_host, "auth_host_uri_prefix": "{}/{}".format(auth_host, "v1/auth/token"),  "tenant_manager_email": "zopsm_tenant_manager@example.com", "manager_password": "9701262a38954448ad6fbb419b571500" }
+saas_params = { "saas_host": "{}".format(saas_host), "tenant_manager_email": "zopsm_tenant_manager@example.com", "manager_password": "9701262a38954448ad6fbb419b571500" }
+# This is the dictionary that the buildmaster pays attention to. We also use
+# a shorter alias to save typing.
+c = BuildmasterConfig = {}
+c['buildbotNetUsageData'] = None # Dont send any statics to buildbot.com or whatever
+
+###### MULTI-MASTER
+# Enable multiMaster mode; disables warnings about unknown builders and
+# schedulers
+# c['multiMaster'] = True
+
+###################################################################
+
+####### WORKERS
+
+# The 'workers' list defines the set of recognized workers. Each element is
+# a Worker object, specifying a unique worker name and password.  The same
+# worker name and password must be configured on the worker.
+
+c['workers'] = [
+   worker.DockerLatentWorker(
+        'zopsm-frontend-worker-1',
+        'se4theN2',
+        docker_host='tcp://{{ ansible_default_ipv4.address }}:2375',
+        image='zetaops/zopsm-frontend-worker',
+        version='1.32',
+        volumes=['/opt/zopsm.io:/buildbot/frontend_builder/build/zopsm-frontend', '/home/ubuntu/bb:/home/buildbot/ssl'],
+        hostconfig={'extra_hosts': { passing_and_active_vault[0]: passing_and_active_vault_ip }},
+        masterFQDN='{{ ansible_default_ipv4.address }}'),
+   worker.DockerLatentWorker(
+        'container-worker',
+        'se4theN2',
+        docker_host='tcp://{{ ansible_default_ipv4.address }}:2375',
+        image='zetaops/ansible-container-worker',
+        version='1.32',
+        volumes=['/home/ubuntu/bb:/home/buildbot/ssl'],
+        hostconfig={'extra_hosts': { passing_and_active_vault[0]: passing_and_active_vault_ip }},
+        masterFQDN='{{ ansible_default_ipv4.address }}'),
+   worker.DockerLatentWorker(
+        'testing-container-worker',
+        'se4theN2',
+        docker_host='tcp://{{ ansible_default_ipv4.address }}:2375',
+        image='zetaops/ansible-container-worker',
+        version='1.32',
+        volumes=['/home/ubuntu/bb:/home/buildbot/ssl'],
+        hostconfig={'extra_hosts': { passing_and_active_vault[0]: passing_and_active_vault_ip }},
+        masterFQDN='{{ ansible_default_ipv4.address }}'),
+   worker.DockerLatentWorker(
+        'gw-worker',
+        'se4theN2',
+        docker_host='tcp://{{ ansible_default_ipv4.address }}:2375',
+        image='zetaops/resttest-worker',
+        version='1.32',
+        volumes=['/home/ubuntu/zopsm:/buildbot/gw_tests/build/zopsm', '/home/ubuntu/bb:/home/buildbot/ssl', '/var/log/containers:/var/log'],
+        hostconfig={'extra_hosts': { passing_and_active_vault[0]: passing_and_active_vault_ip }},
+        masterFQDN='{{ ansible_default_ipv4.address }}'),
+   worker.DockerLatentWorker(
+        'saas-worker',
+        'se4theN2',
+        docker_host='tcp://{{ ansible_default_ipv4.address }}:2375',
+        image='zetaops/resttest-worker',
+        version='1.32',
+        volumes=['/home/ubuntu/zopsm:/buildbot/saas_tests/build/zopsm', '/home/ubuntu/bb:/home/buildbot/ssl', '/var/log/containers:/var/log'],
+        hostconfig={'extra_hosts': { passing_and_active_vault[0]: passing_and_active_vault_ip }},
+        masterFQDN='{{ ansible_default_ipv4.address }}'),
+   worker.DockerLatentWorker(
+        'push-worker',
+        'se4theN2',
+        docker_host='tcp://{{ ansible_default_ipv4.address }}:2375',
+        image='zetaops/resttest-worker',
+        version='1.32',
+        volumes=['/home/ubuntu/zopsm:/buildbot/push_tests/build/zopsm', '/home/ubuntu/bb:/home/buildbot/ssl', '/var/log/containers:/var/log'],
+        hostconfig={'extra_hosts': { passing_and_active_vault[0]: passing_and_active_vault_ip }},
+        masterFQDN='{{ ansible_default_ipv4.address }}'),
+   worker.DockerLatentWorker(
+        'docbox-worker',
+        'se4theN2',
+        docker_host='tcp://{{ ansible_default_ipv4.address }}:2375',
+        image='zetaops/zopsm-frontend-worker',
+        version='1.32',
+        volumes=['/opt/zopsm_docs/dist/:/buildbot/docbox_builder/build/dist/', '/home/ubuntu/bb:/home/buildbot/ssl', '/var/log/containers:/var/log'],
+        hostconfig={'extra_hosts': { passing_and_active_vault[0]: passing_and_active_vault_ip }},
+        masterFQDN='{{ ansible_default_ipv4.address }}')
+]
+
+# 'protocols' contains information about protocols which master will use for
+# communicating with workers. You must define at least 'port' option that workers
+# could connect to your master with this protocol.
+# 'port' must match the value configured into the workers (with their
+# --master option)
+c['protocols'] = {'pb': {'port': '9989' }}
+
+####### CHANGESOURCES
+
+# the 'change_source' setting tells the buildmaster how it should find out
+# about source code changes.  Here we point to the buildbot clone of pyflakes.
+c['change_source'] = []
+c['change_source'] = [
+   changes.GitPoller(repourl='git@github.com:kunthar/zopsm.git',
+                                                      branches=['master', 'develop'],
+                                                      workdir='gitpoller-zopsm',
+                                                      pollinterval=120),
+
+   changes.GitPoller(repourl='git@github.com:kunthar/zopsm-frontend.git',
+                                                      branch='master',
+                                                      project='zopsm-frontend',
+                                                      workdir='gitpoller-zopsm-frontend',
+                                                      pollinterval=120),
+
+   changes.GitPoller(repourl='https://github.com/zetaops/docbox',
+                                                      branch='master',
+                                                      project='docbox',
+                                                      workdir='gitpoller-docbox',
+                                                      pollinterval=120)
+]
+
+####### SCHEDULERS
+
+# Configure the Schedulers, which decide how to react to incoming changes.  In this
+# case, just kick off a 'runtests' build
+
+force_scheduler = schedulers.ForceScheduler(
+    name="force",
+    buttonName="Start Force Build",
+    label="Run Force build with specified parameters below. ^^",
+    builderNames=["testing_container_builder", "frontend_builder", "docbox_builder", "container_builder"],
+
+    codebases=[
+        util.CodebaseParameter(
+            "",
+            label="Main repository",
+            # will generate a combo box
+            branch=util.StringParameter(
+                name="branch",
+                default="master"),
+
+            # will generate nothing in the form, but revision, repository,
+            # and project are needed by buildbot scheduling system so we
+            # need to pass a value ("")
+            revision=util.FixedParameter(name="revision", default=""),
+            repository=util.FixedParameter(name="repository", default=""),
+            project=util.FixedParameter(name="project", default=""),
+        ),
+    ],
+
+    # will generate a text input
+    reason=util.StringParameter(name="reason",
+                                label="DevTools Branch Name:",
+                                default="hetzner",
+                                required=True, size=80),
+
+    # in case you don't require authentication this will display
+    # input for user to type his name
+    username=util.UserNameParameter(label="Your email:",
+                                    size=80),
+)
+
+c['schedulers'] = []
+c['schedulers'] = [
+
+    schedulers.SingleBranchScheduler(
+                name="zopsm_develop",
+                change_filter=util.ChangeFilter(branch='develop'),
+                treeStableTimer=60,
+                builderNames=["testing_container_builder"]),
+
+    schedulers.SingleBranchScheduler(
+                name="zopsm_master",
+                change_filter=util.ChangeFilter(branch='master'),
+                treeStableTimer=60,
+                builderNames=["container_builder"]),
+
+    schedulers.Triggerable(
+                name="saas_scheduler",
+                builderNames=["saas_tests"]),
+
+    schedulers.Triggerable(
+                name="push_scheduler",
+                builderNames=["push_tests"]),
+
+    schedulers.Triggerable(
+                name="gw_scheduler",
+                builderNames=["gw_tests"]),
+
+    schedulers.Triggerable(
+                name="container_builder_scheduler",
+                builderNames=["container_builder"]),
+
+    schedulers.SingleBranchScheduler(
+                name="frontend",
+                change_filter=util.ChangeFilter(branch='master', project='zopsm-frontend'),
+                treeStableTimer=60,
+                builderNames=["frontend_builder"]),
+
+    schedulers.SingleBranchScheduler(
+                name="docbox_scheduler",
+                change_filter=util.ChangeFilter(branch='master', project='docbox'),
+                treeStableTimer=60,
+                builderNames=["docbox_builder"])
+]
+
+c['schedulers'].append(force_scheduler)
+
+####### BUILDERS
+
+# The 'builders' list defines the Builders, which tell Buildbot how to perform a build:
+# what steps, and which workers can execute them.  Note that any particular build will
+# only take place on one worker.
+
+
+# check out the source
+# factory.addStep(steps.Git(repourl='git://github.com/buildbot/pyflakes.git', mode='incremental'))
+# run the tests (note that this will require that 'trial' is installed)
+# factory.addStep(steps.ShellCommand(command=["trial", "pyflakes"]))
+
+
+################## BUILD FACTORIES
+
+test_containers = util.BuildFactory()
+test_containers.addStep(steps.ShellCommand(command=['sudo', 'chown', '-R', 'buildbot:buildbot', '/home/buildbot/ssl']))
+test_containers.addStep(steps.ShellCommand(command=["cp", "/buildbot/ssh-key.sh", "/buildbot/testing_container_builder/build/ssh-key.sh"])),
+test_containers.addStep(steps.ShellCommand(command=["/buildbot/testing_container_builder/build/ssh-key.sh"],
+                                     env={ 'VAULT_NODE': passing_and_active_vault[0], 'VAULT_ADDR': passing_and_active_vault_ip, 'VAULT_TOKEN': os.getenv('VAULT_TESTING_TOKEN') }))
+test_containers.addStep(steps.ShellCommand(command=['rm', '-rf', '/buildbot/testing_container_builder/build/zopsm-dev-tools/ansible-deployment/group_vars']))
+test_containers.addStep(steps.ShellCommand(command=['git', 'checkout', util.Interpolate('%(prop:reason)s')], workdir='/buildbot/testing_container_builder/build/zopsm-dev-tools'))
+test_containers.addStep(steps.ShellCommand(command=['ansible-playbook',
+                                              '-i',
+                                              '/buildbot/testing_container_builder/build/zopsm-dev-tools/ansible-deployment/hosts-tmp',
+                                              '--extra-vars=postgres_master={}'.format(postgres_host),
+                                              '/buildbot/testing_container_builder/build/zopsm-dev-tools/ansible-deployment/playbooks/buildbot/testing/postgresql.yml'],
+                                              env={ 'VAULT_DEV_TOKEN': os.getenv('VAULT_TESTING_TOKEN') }))
+test_containers.addStep(steps.ShellCommand(command=['ansible-playbook',
+                                              '-i',
+                                              '/buildbot/testing_container_builder/build/zopsm-dev-tools/ansible-deployment/hosts-tmp',
+                                              '--extra-vars=postgres_master={}'.format(postgres_host),
+                                              '/buildbot/testing_container_builder/build/zopsm-dev-tools/ansible-deployment/playbooks/buildbot/testing/testing_environment.yml'],
+                                              env={ 'VAULT_DEV_TOKEN': os.getenv('VAULT_TESTING_TOKEN'), 'BRANCH_NAME': util.Interpolate('%(prop:branch)s')}))
+test_containers.addStep(steps.ShellCommand(command=["sleep", "10"]))
+test_containers.addStep(steps.Trigger(schedulerNames=['saas_scheduler'],
+                        waitForFinish=True,
+                        updateSourceStamp=True))
+
+test_containers.addStep(steps.ShellCommand(command=['ansible-playbook',
+                                              '-i',
+                                              '/buildbot/testing_container_builder/build/zopsm-dev-tools/ansible-deployment/hosts-tmp',
+                                              '--extra-vars=postgres_master={}'.format(postgres_host),
+                                              '/buildbot/testing_container_builder/build/zopsm-dev-tools/ansible-deployment/playbooks/buildbot/testing/remove_testing_environment.yml'],
+                                              env={ 'VAULT_DEV_TOKEN': os.getenv('VAULT_TESTING_TOKEN')},
+                                     alwaysRun=True))
+
+saas = util.BuildFactory()
+saas.addStep(steps.ShellCommand(command=['sudo', 'chown', '-R', 'buildbot:buildbot', '/var/log']))
+saas.addStep(steps.ShellCommand(command=['pyresttest',
+                                         '--print-bodies-pretty=True',
+                                         '--vars',
+                                         '{}'.format(json.dumps(saas_params)),
+                                         '--absolute-urls',
+                                         '{}'.format(saas_host),
+                                         '/buildbot/saas_tests/build/zopsm/tests/test_saas.yaml'],
+                                         logfiles={
+                                             "saas": {
+                                                "filename": "/var/log/container/saas.log",
+                                                "follow": True
+                                             }
+                                         }))
+
+saas.addStep(steps.Trigger(schedulerNames=['gw_scheduler'],
+                        waitForFinish=True,
+                        updateSourceStamp=True))
+
+
+gw = util.BuildFactory()
+gw.addStep(steps.ShellCommand(command=['sudo', 'chown', '-R', 'buildbot:buildbot', '/var/log']))
+gw.addStep(steps.ShellCommand(command=['pyresttest',
+                                         '--print-bodies-pretty=True',
+                                         '--vars',
+                                         "{}".format(json.dumps(saas_roc_auth_host)),
+                                         '--absolute-urls',
+                                         '{}'.format(roc_host),
+                                         '/buildbot/gw_tests/build/zopsm/tests/test_roc.yaml'],
+                                         logfiles={
+                                         "auth": {
+                                                "filename": "/var/log/container/auth.log",
+                                                "follow": True
+                                             }
+                                             ,"worker": {
+                                                "filename": "/var/log/container/worker.log",
+                                                "follow": True
+                                             }
+                                             ,"roc": {
+                                                "filename": "/var/log/container/gw.log",
+                                                "follow": True
+                                             }
+                                         }))
+
+gw.addStep(steps.Trigger(schedulerNames=['push_scheduler'],
+                        waitForFinish=True,
+                        updateSourceStamp=True))
+
+push = util.BuildFactory()
+push.addStep(steps.ShellCommand(command=['sudo', 'chown', '-R', 'buildbot:buildbot', '/var/log']))
+push.addStep(steps.ShellCommand(command=['pyresttest',
+                                         '--print-bodies-pretty=True',
+                                         '--vars',
+                                         "{}".format(json.dumps(saas_push_auth_host)),
+                                         '--absolute-urls',
+                                         '{}'.format(push_host),
+                                         '/buildbot/push_tests/build/zopsm/tests/test_push.yaml'],
+                                         logfiles={
+                                         "auth": {
+                                                "filename": "/var/log/container/auth.log",
+                                                "follow": True
+                                             }
+                                             ,"worker": {
+                                                "filename": "/var/log/container/worker.log",
+                                                "follow": True
+                                             }
+                                             ,"push": {
+                                                "filename": "/var/log/container/push.log",
+                                                "follow": True
+                                             }
+                                         }))
+
+
+container = util.BuildFactory()
+container.addStep(steps.ShellCommand(command=['sudo', 'chown', '-R', 'buildbot:buildbot', '/home/buildbot/ssl']))
+container.addStep(steps.ShellCommand(command=["cp", "/buildbot/ssh-key.sh", "/buildbot/container_builder/build/ssh-key.sh"]))
+container.addStep(steps.ShellCommand(command=["/buildbot/ssh-key.sh", "/buildbot/container_builder/build/ssh-key.sh"],
+                                     env={ 'VAULT_NODE': passing_and_active_vault[0], 'VAULT_ADDR': passing_and_active_vault_ip, 'VAULT_TOKEN': os.getenv('VAULT_PROD_TOKEN')  }))
+container.addStep(steps.ShellCommand(command=['git', 'checkout', util.Interpolate('%(prop:reason)s')], workdir='/buildbot/container_builder/build/zopsm-dev-tools'))
+container.addStep(steps.ShellCommand(command=['rm', '-rf', '/buildbot/container_builder/build/zopsm-dev-tools/ansible-deployment/group_vars']))
+container.addStep(steps.ShellCommand(command=['ansible-playbook',
+                                              '-i',
+                                              '/buildbot/container_builder/build/zopsm-dev-tools/ansible-deployment/hosts-tmp',
+                                              '--extra-vars=postgres_master={}'.format(postgres_host),
+                                              '/buildbot/container_builder/build/zopsm-dev-tools/ansible-deployment/playbooks/buildbot/docker-containers.yml'],
+                                              env={ 'VAULT_DEV_TOKEN': os.getenv('VAULT_PROD_TOKEN') }
+                                     ))
+
+
+frontend = util.BuildFactory()
+frontend.addStep(steps.ShellCommand(command=['sudo', 'chown', '-R', 'buildbot:buildbot', '/home/buildbot/ssl'], hideStepIf=True))
+frontend.addStep(steps.ShellCommand(command=["/buildbot/ssh-key.sh"],
+                                     env={ 'VAULT_NODE': passing_and_active_vault[0], 'VAULT_ADDR': passing_and_active_vault_ip, 'VAULT_TOKEN': vault_token }, haltOnFailure=True))
+frontend.addStep(steps.ShellCommand(command=['echo',  passing_and_active_vault_ip + ' ' + passing_and_active_vault[0], '>>', '/etc/hosts'], haltOnFailure=True))
+frontend.addStep(steps.ShellCommand(command=['sudo', 'chown', '-R', 'buildbot:buildbot', '/buildbot'], haltOnFailure=True))
+frontend.addStep(steps.ShellCommand(command=['git', 'clone', 'git@github.com:kunthar/zopsm-frontend.git', 'frontend'], haltOnFailure=True))
+frontend.addStep(steps.ShellCommand(command=['git', 'checkout', util.Interpolate('%(prop:branch)s')], workdir='/buildbot/frontend_builder/build/frontend/'))
+frontend.addStep(steps.ShellCommand(command=['sleep', '10']))
+frontend.addStep(steps.ShellCommand(command=['npm', 'install'], workdir='/buildbot/frontend_builder/build/frontend/zopsio/', haltOnFailure=True))
+frontend.addStep(steps.ShellCommand(command=['/buildbot/frontend_builder/build/frontend/zopsio/node_modules/@angular/cli/bin/ng', 'build'], workdir='/buildbot/frontend_builder/build/frontend/zopsio/', haltOnFailure=True))
+frontend.addStep(steps.ShellCommand(command=['sudo', 'rm', '-rf', '/buildbot/frontend_builder/build/zopsm-frontend/zopsio/'], haltOnFailure=True))
+frontend.addStep(steps.ShellCommand(command=['cp', '-rf', '/buildbot/frontend_builder/build/frontend/zopsio/', '/buildbot/frontend_builder/build/zopsm-frontend/'], haltOnFailure=True))
+frontend.addStep(steps.ShellCommand(command=['mkdir', '-p', '/buildbot/frontend_builder/build/zopsm-frontend/zopsio/dist/'], haltOnFailure=True))
+frontend.addStep(steps.ShellCommand(command=['cp', '-rf', '/buildbot/frontend_builder/build/frontend/zopsio/dist', '/buildbot/frontend_builder/build/zopsm-frontend/zopsio/dist/'], haltOnFailure=True))
+frontend.addStep(steps.ShellCommand(command=['touch', '/buildbot/frontend_builder/build/zopsm-frontend/zopsio/dist/zopsio_status'], haltOnFailure=True))
+frontend.addStep(steps.ShellCommand(command=['sed', '-i', 's/\/buildbot\/frontend_builder\/build\/frontend/\/usr\/share\/nginx\/zopsio/g', '/buildbot/frontend_builder/build/zopsm-frontend/zopsio/dist/main.bundle.js.map'], haltOnFailure=True))
+frontend.addStep(steps.ShellCommand(command=['sudo', 'chown', '-R', 'root:root', '/buildbot/frontend_builder/build/zopsm-frontend/'], haltOnFailure=True))
+
+docbox_factory = util.BuildFactory()
+docbox_factory.addStep(steps.ShellCommand(command=['sudo', 'chown', '-R', 'buildbot:buildbot', '/buildbot'], haltOnFailure=True))
+docbox_factory.addStep(steps.ShellCommand(command=['git', 'clone', 'https://github.com/zetaops/docbox'], haltOnFailure=True))
+docbox_factory.addStep(steps.ShellCommand(command=['git', 'checkout', util.Interpolate('%(prop:branch)s')], workdir='/buildbot/docbox_builder/build/docbox/'))
+docbox_factory.addStep(steps.ShellCommand(command=['cp', '-r', '/buildbot/docbox_builder/build/dist/', '/buildbot/docbox_builder/build/docbox/dist/'], haltOnFailure=True))
+#docbox_factory.addStep(steps.ShellCommand(command=['sleep', '100']))
+docbox_factory.addStep(steps.ShellCommand(command=['npm', 'install'], workdir='/buildbot/docbox_builder/build/docbox/', haltOnFailure=True))
+docbox_factory.addStep(steps.ShellCommand(command=['/buildbot/docbox.sh'], env={ 'MD': 'PUSH'}, workdir='/buildbot/docbox_builder/build/docbox/', haltOnFailure=True))
+docbox_factory.addStep(steps.ShellCommand(command=['/buildbot/docbox.sh'], env={ 'MD': 'SAAS'}, workdir='/buildbot/docbox_builder/build/docbox/', haltOnFailure=True))
+docbox_factory.addStep(steps.ShellCommand(command=['/buildbot/docbox.sh'], env={ 'MD': 'ROC'}, workdir='/buildbot/docbox_builder/build/docbox/', haltOnFailure=True))
+docbox_factory.addStep(steps.ShellCommand(command=['/buildbot/docbox.sh'], env={ 'MD': 'AUTH'}, workdir='/buildbot/docbox_builder/build/docbox/', haltOnFailure=True))
+
+###################################################################
+
+##################### Builders
+c['builders'] = []
+c['builders'] = [
+  util.BuilderConfig(name='gw_tests', workernames='gw-worker', factory=gw),
+  util.BuilderConfig(name='saas_tests', workernames='saas-worker', factory=saas),
+  util.BuilderConfig(name='push_tests', workernames='push-worker', factory=push),
+  util.BuilderConfig(name='container_builder', workername='container-worker', factory=container),
+  util.BuilderConfig(name='testing_container_builder', workername='testing-container-worker', factory=test_containers),
+  util.BuilderConfig(name='frontend_builder', workernames=['zopsm-frontend-worker-1'], factory=frontend),
+  util.BuilderConfig(name='docbox_builder', workernames=['docbox-worker'], factory=docbox_factory)
+]
+###################################################################
+
+
+####### STATUS TARGETS
+
+# 'status' is a list of Status Targets. The results of each build will be
+# pushed to these targets. buildbot/status/*.py has a variety to choose from,
+# like IRC bots.
+
+c['status'] = []
+
+####################################################################
+
+####### SERVICES
+
+c['services'] = []
+
+template=u'''\
+
+<a href="{{ '{{' }} build_url {{ '}}' }}">Go to Build</a>
+
+<h4> Build status: {{ '{{' }} summary {{ '}}' }} </h4>
+<p> Worker used: {{ '{{' }} workername {{ '}}' }}</p>
+<p> Blame List: {{ '{{' }} blamelist | join(', ') {{ '}}' }} </p>
+{{ '{%' }} for step in build['steps'] {{ '%}' }}
+<p> {{ '{{' }} step['name'] {{ '}}' }}: {{ '{{' }} step['result'] {{ '}}' }}</p>
+{{ '{%' }} endfor {{ '%}' }}
+<p><b> -- The Zops Buildbot</b></p>
+'''
+
+mn = reporters.MailNotifier(fromaddr="buildbot@ulakbus.org",
+                            sendToInterestedUsers=True,
+                            mode=('failing', 'passing', 'problem', 'warnings', 'exception'),
+                            extraRecipients=['zopsbot@zetaops.io', 'gokhan@zetaops.io'],
+                            relayhost="smtp.mailgun.org",
+                            smtpPort=2525, smtpUser="{}".format(mail_user),
+                            useTls=True,
+                            smtpPassword="{}".format(mail_pw),
+                            addLogs=True,
+                            messageFormatter=reporters.MessageFormatter(
+                                template=template,
+                                template_type='html',
+                                wantProperties=True,
+                                wantSteps=True))
+c['services'].append(mn)
+
+####### PROJECT IDENTITY
+
+# the 'title' string will appear at the top of this buildbot installation's
+# home pages (linked to the 'titleURL').
+
+c['title'] = "Zops Buildbot"
+c['titleURL'] = "http://www.zops.io"
+
+# the 'buildbotURL' string should point to the location where the buildbot's
+# internal web server is visible. This typically uses the port number set in
+# the 'www' entry below, but with an externally-visible host name which the
+# buildbot cannot figure out without some help.
+
+c['buildbotURL'] = "http://bb.zops.io/"
+
+# minimalistic config to activate new web UI
+c['www'] = dict(port=8010,
+           plugins=dict(waterfall_view={}, console_view={})
+)
+
+####### DB URL
+
+c['db'] = {
+# This specifies what database buildbot uses to store its state.  You can leave
+# this at its default for all but the largest installations.
+    'db_url':  "postgresql://{}:{}@{}/{}".format(postgres_user, postgres_pw, postgres_host, postgres_db)
+}

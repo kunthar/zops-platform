@@ -1,0 +1,28 @@
+---
+- hosts: consul
+  become: yes
+  remote_user: ubuntu
+
+  tasks:
+  - name: create /var/backups/consul
+    file:
+      path: /var/backups/consul
+      state: directory
+
+  - name:
+    template:
+        src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/playbooks/backup/templates/backup_consul.sh.j2
+        dest: /usr/local/bin/backup_consul.sh
+        owner: root
+        group: root
+        mode: 0744
+
+  - name: backup consul
+    cron:
+      name: "backup consul"
+      minute: 50
+      hour: 5
+      job: '/usr/local/bin/backup_consul.sh'
+      cron_file: consul
+      user: "root"
+      state: present

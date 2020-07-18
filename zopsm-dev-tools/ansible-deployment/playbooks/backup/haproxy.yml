@@ -1,0 +1,20 @@
+---
+- hosts: load-balancer
+  become: yes
+  remote_user: ubuntu
+
+  tasks:
+  - name: create /var/backups/haproxy
+    file:
+      path: /var/backups/haproxy
+      state: directory
+
+  - name: backup consul
+    cron:
+      name: "backup haproxy"
+      minute: 34
+      hour: 5
+      job: 'cp -r /var/log/haproxy* /var/backups/haproxy'
+      cron_file: haproxy
+      user: "root"
+      state: present

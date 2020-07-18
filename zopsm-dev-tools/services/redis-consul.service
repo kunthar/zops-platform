@@ -1,0 +1,19 @@
+[Unit]
+Description=Riak Service (De)Registrator for Consul
+BindsTo=redis-server.service
+After=redis-server.service
+PartOf=redis-server.service
+
+[Service]
+ExecStartPre=/bin/bash -c "/bin/systemctl set-environment ipaddress=$(/sbin/ifconfig -a eth0 | grep 'inet addr:' \
+| /usr/bin/cut -d ':' -f 2 | /usr/bin/cut -d ' ' -f1)"
+ExecStart=/bin/bash -c "/bin/echo '{   \"service\": {     \"name\": \"redis\", \"tags\": [\"redis-service\"],  \
+  \"address\": \"${ipaddress}\",    \"port\": 6379, \"checks\": [ {  \"id\": \"tcp-check\", \"tcp\": \"${ipaddress}:6379\",\
+  \"interval\": \"10s\", \"timeout\": \"1s\"      } ]  }}'  > /etc/consul.d/redis.json"
+ExecStartPost=/bin/bash -c '/usr/local/bin/consul reload'
+RemainAfterExit=true
+ExecStop=/bin/bash -c '/bin/rm /etc/consul.d/redis.json'
+ExecStopPost=/bin/bash -c '/usr/local/bin/consul reload'
+
+[Install]
+WantedBy=multi-user.target

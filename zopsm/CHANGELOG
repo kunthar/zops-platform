@@ -1,0 +1,28 @@
+0.0.3
+=====
+Feature:
+- Send a push message to a list of consumers without creating a segment #5923
+- Add a paramater called `extra` to handle additional custom fields in a push message  #5990
+
+Bugfix:
+- `datatime` field extends from ZopsStringField now instead of default string
+field which causes validation error #5921
+- tag value_type parsing error #5922
+- enlarge saas log description db field length
+- make the default queue of workers durable to avoid duplicate records in riak
+- fix decode error in unified push sender #5997
+
+Refactor:
+- error messages changed. rref #5911
+- paginated filter method refactored and count method added. rref #5911
+
+
+0.0.2
+=====
+
+Feature:
+- log notifier, send error and warnings saas panel and chat channel #5868
+
+Bugfix:
+- `not implemented` methods better documentation #5881
+

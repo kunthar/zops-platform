@@ -1,0 +1,20 @@
+{
+  "service": {
+    "id": "redis_slave",
+    "name": "redis",
+    "tags": [
+      "redis-service"
+    ],
+    "address": "172.25.0.128",
+    "port": 6379,
+    "enableTagOverride": false,
+    "checks": [
+      {
+        "id": "tcp-check",
+        "tcp": "172.25.0.128:6379",
+        "interval": "10s",
+        "timeout": "1s"
+      }
+    ]
+  }
+}

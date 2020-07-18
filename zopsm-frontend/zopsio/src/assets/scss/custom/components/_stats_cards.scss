@@ -1,0 +1,132 @@
+.statcard {
+  &.statcard-primary {
+    background: #1997c6;
+    border-radius: 5px;
+
+    .statcard-number {
+      color: #fff;
+    }
+
+    .statcard-desc {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .stat-indicator {
+      color: #fff;
+    }
+  }
+
+  &.statcard-success {
+    border-radius: 5px;
+    background: #16bf86;
+
+    .statcard-number {
+      color: #fff;
+    }
+
+    .statcard-desc {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .stat-indicator {
+      color: #fff;
+    }
+  }
+
+  &.statcard-dark {
+    border-radius: 5px;
+    background: #333;
+
+    .statcard-number {
+      color: #fff;
+    }
+
+    .statcard-desc {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .stat-indicator {
+      color: #fff;
+    }
+  }
+
+  &.statcard-danger {
+    border-radius: 5px;
+    background: #E64759;
+
+    .statcard-number {
+      color: #fff;
+    }
+
+    .statcard-desc {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .stat-indicator {
+      color: #fff;
+    }
+  }
+
+  &.statcard-warning {
+    border-radius: 5px;
+    background: #E4D836;
+
+    .statcard-number {
+      color: #fff;
+    }
+
+    .statcard-desc {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .stat-indicator {
+      color: #fff;
+    }
+  }
+}
+
+.statcard-number {
+  .stat-indicator {
+    font-size: 13px;
+    position: relative;
+    top: -7px;
+    left: 4px;
+
+    &:after {
+      content: '';
+      display: inline-block;
+      width: 0;
+      height: 0;
+      margin-left: 3px;
+      vertical-align: middle;
+      border-right: 4px solid transparent;
+      border-left: 4px solid transparent;
+    }
+  }
+
+  .indicator-positive {
+    color: #09a209;
+
+    &:after {
+      border-top: 0;
+      border-bottom: 5px solid;
+    }
+  }
+
+  .indicator-negative {
+    color: #d80808;
+
+    &:after {
+      border-bottom: 0;
+      border-top: 5px solid;
+    }
+  }
+}
+
+.statcard-desc {
+  text-transform: uppercase;
+  font-size: 85%;
+  letter-spacing: .7px;
+  font-weight: 500;
+  color: #6b7c98;
+}

@@ -1,0 +1,131 @@
+- hosts: worker-01
+  become: yes
+  remote_user: ubuntu
+
+  tasks:
+  - name: create bb folder for certs
+    file:
+      path: /home/ubuntu/bb
+      state: directory
+
+  - name: copy ca.cert
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/certs/ca.cert
+      dest: /home/ubuntu/bb/ca.cert
+
+  - name: copy vault.cert
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/certs/CAbundles/vault/vault.cert
+      dest: /home/ubuntu/bb/vault.cert
+
+  - name: copy vault.key
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/certs/CAbundles/vault/vault.key
+      dest: /home/ubuntu/bb/vault.key
+
+  - name: copy buildbot/master/master.cfg to home folder
+    template:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/master/master.cfg.j2
+      dest: /home/ubuntu/buildbot-conf-files/master.cfg
+
+  - name: remove bb-master if exists
+    shell: docker stop bb-master && docker rm bb-master
+    ignore_errors: yes
+
+  - name: create dict from vault group
+    set_fact:
+       vault_host_ip: "{{ vault_host_ip|default({}) | combine( {hostvars[item].name + '.vault': hostvars[item].ansible_ssh_host} ) }}"
+    with_items: "{{ groups['vault'] }}"
+
+  - name: create dict from vault group
+    set_fact:
+       postgres_host_ip: "{{ postgres_host_ip|default({}) | combine( {hostvars[item].name : hostvars[item].ansible_ssh_host} ) }}"
+    with_items: "{{ groups['postgres'] }}"
+
+  - name: run buildbot master container
+    docker_container:
+      name: bb-master
+      image: zetaops/buildbot-master
+      api_version: 1.32
+      ports:
+        - "9989:9989"
+        - "8010:8010"
+      restart_policy: unless-stopped
+      volumes:
+        - '/home/ubuntu/buildbot-conf-files:/var/lib/buildbot'
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip | combine(postgres_host_ip) }}"
+      env:
+        POSTGRES_HOST: "{{ hostvars['redis-01'].ansible_ssh_host }}"
+        VAULT_TOKEN: '71c3f31f-39fb-b9fc-db42-e7c55ecda6f4'
+        VAULT_PROD_TOKEN: '4d4e5c2d-3272-30fd-c658-640b2b978cc6'
+        VAULT_TESTING_TOKEN: 'be81a5f9-e89a-de2e-34ae-c9bd0767f0b5'
+      state: started
+    no_log: True
+
+
+  - name: manually register buildbot-master with tcp health check
+    shell: |
+            echo '{
+                "Service": {
+                  "Name": "bb",
+                  "Address": "{{ ansible_default_ipv4.address }}",
+                  "Port": 8010,
+                  "Check": {
+                    "ID": "bb_check",
+                    "Name": "bb_check",
+                    "TCP": "{{ ansible_default_ipv4.address }}:8010",
+                    "Interval": "10s",
+                    "Timeout": "1s",
+                    "DeregisterCriticalServiceAfter": "2m"
+                  }
+                }
+              }' > /etc/consul.d/buildbot.json
+
+  - name: consul reload
+    systemd:
+      name: consul
+      state: reloaded
+
+#
+##############################################################
+#
+#- hosts: worker-02
+#  become: yes
+#  remote_user: ubuntu
+#
+#  tasks:
+#  - name: copy buildbot/master/master.cfg to home folder
+#    template:
+#      src: /Users/cem/projects/zopsm-dev-tools/containers/buildbot/master/master.cfg.j2
+#      dest: /home/ubuntu/buildbot-conf-files/master.cfg
+#
+#  - name: remove bb-master if exists
+#    shell: docker stop bb-master && docker rm bb-master
+#    ignore_errors: yes
+#
+#  - name: run buildbot master container
+#    docker_container:
+#      name: bb-master
+#      image: zetaops/buildbot-master-schedulers
+#      api_version: 1.32
+#      ports:
+#        - "9989:9989"
+#        - "8010:8010"
+#      restart_policy: unless-stopped
+#      volumes:
+#        - '/home/ubuntu/buildbot-conf-files:/var/lib/buildbot'
+#      env:
+#        POSTGRES_HOST: '{{ hostvars[groups["postgres-master"][0]].ansible_ssh_host }}'
+#        VAULT_TOKEN: '62779c08-2ee2-6078-8a7b-58da40084077'
+#      state: started
+#
+#  - name: register buildbot-master-schedulers
+#    consul:
+#      host: "{{ ansible_default_ipv4.address }}"
+#      service_name: "buildbot"
+#      service_id: "buildbot-scheduler"
+#      service_address: "{{ ansible_default_ipv4.address }}"
+#      service_port: 8010
+#      interval: 60s
+#      state: present

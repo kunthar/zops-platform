@@ -1,0 +1,35 @@
+
+nav a {
+  color: #0B4C5F;
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+  color: #FED231;
+  border-bottom-color: #0B4C5F;
+  border-radius: 0px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  padding: 15px;
+}
+
+.session-page{
+  background-color: #ffffff;
+}
+.nav-tabs .nav-link {
+  border: 1px solid transparent;
+  border-top-left-radius: 0.25rem;
+  border-top-right-radius: 0.25rem;
+  padding: 15px;
+}
+.project{
+  color: #0B4C5F;
+}
+.started {
+  width: 100%;
+  border: 1px solid #ddd;
+  height: 600px;
+}
+.usage{
+  margin-left: 2rem;
+}
+

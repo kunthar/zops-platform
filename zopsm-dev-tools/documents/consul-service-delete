@@ -1,0 +1,4 @@
+c = consul.Consul(scheme="https", host="deneme.dc1.consul", port=8080, verify='/usr/local/share/ca-certificates/ca.cert', cert=('/usr/local/share/ca-certificates/con
+   ...: sul.cert', '/usr/local/share/ca-certificates/consul.key'))
+   
+curl 172.17.0.10:8500/v1/catalog/service/nginx | jq -r .[] | jq -r '("curl -X PUT " + .ServiceAddress + ":8500/v1/agent/service/deregister/" + .ServiceID)' | xargs -I '{}' bash -c '{}'

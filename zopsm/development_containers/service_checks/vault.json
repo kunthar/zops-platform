@@ -1,0 +1,13 @@
+{
+    "service": {
+        "name": "vault",
+        "tags": ["active"],
+        "address": "172.25.0.113",
+        "port": 8200,
+        "enableTagOverride": false,
+        "checks": [{
+            "http": "http://172.25.0.113:8200/v1/sys/health",
+            "interval": "10s"
+        }]
+    }
+}

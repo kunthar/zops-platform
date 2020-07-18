@@ -1,0 +1,88 @@
+---
+- hosts: vault
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: Download and Extract vault to /usr/local/bin
+    unarchive:
+      src: https://releases.hashicorp.com/vault/0.10.3/vault_0.10.3_linux_amd64.zip
+      dest: /usr/local/bin
+      remote_src: yes
+
+  - name: create vault group
+    group:
+      name: vault
+      state: present
+
+  - name: create vault user
+    user:
+      name: vault
+      groups: vault
+      state: present
+      append: yes
+
+  - name: Create vault.service under /etc/systemd/sytem
+    shell: |
+      echo '[Unit]
+      Description=Vault Daemon
+      Wants=basic.target
+      After=basic.target network.target
+
+      [Service]
+      User=vault
+      Group=vault
+      ExecStart=/usr/local/bin/vault server -config=/etc/vault.d/
+      SuccessExitStatus=12
+      ExecReload=/bin/kill -SIGHUP $MAINPID
+      ExecStop=/bin/kill -SIGINT $MAINPID
+      KillMode=process
+      Restart=always
+      RestartSec=42s
+      LimitNOFILE=4096
+
+      [Install]
+      WantedBy=multi-user.target' > /etc/systemd/system/vault.service
+
+  - name: Create configuration folder of vault and its plugins under /etc
+    file:
+      path: /etc/vault.d/plugins
+      state: directory
+      recurse: yes
+      owner: vault
+      group: vault
+      mode: '0700'
+
+  - name: write initial Vault config to /etc/vault.d/config.hcl
+    template:
+      src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/templates/vault.hcl.j2
+      dest: /etc/vault.d/config.hcl
+      owner: vault
+      group: vault
+      mode: '0600'
+
+  # https://www.vaultproject.io/docs/configuration/index.html
+  - name: to give the Vault executable the ability to use the mlock syscall without running the process as root, running
+    shell: setcap cap_ipc_lock=+ep "$(readlink -f $(which vault))"
+
+  - name: change RLIMIT_CORE to 0 to prevent coredumps
+    pam_limits:
+      domain: vault
+      limit_item: core
+      limit_type: '-'
+      value: 0
+
+  - name: restart vault.service on nodes
+    systemd:
+      state: started
+      name: vault
+
+  - name: enable vault.service to start at boot
+    systemd:
+      enabled: yes
+      name: vault
+
+  - name: export VAULT_ADDR
+    lineinfile:
+      dest: /home/ubuntu/.bashrc
+      line: export VAULT_ADDR=https://{{ ansible_default_ipv4.address }}:8200

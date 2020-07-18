@@ -1,0 +1,102 @@
+<app-header></app-header>
+
+<div class="session-page">
+  <div class="container">
+    <!-- If approval needed. -->
+    <div *ngIf="isApproveSent" class="alert alert-success alert-dismissible fade show" role="alert">
+      <h4 class="alert-heading">Well done!</h4>
+      <p>We'll send you an email in a minute to verify your organization. Please check your mails. Now you will redirect
+        to <a href="/" class="alert-link">main page</a>...</p>
+    </div>
+
+    <!-- If 409 returns after submit. -->
+    <div *ngIf="isConflict" class="alert alert-danger alert-dismissible fade show" role="alert">
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+      <h4 class="alert-heading">Opps!</h4>
+      <p>It looks like you are already a part of us. Did you <a href="/forgot-password" class="alert-link">forget your
+        password</a>? Or do you want to <a href="/signin" class="alert-link">sign in</a>?</p>
+    </div>
+
+    <any-error [show]="anyError"></any-error>
+
+    <div class="wrapper">
+      <div class="formy">
+        <form role="form" (ngSubmit)="f.form.valid && startSignUp()" #f="ngForm" novalidate>
+
+          <div class="form-group">
+            <label for="organizationName">Organization Name</label>
+            <input type="text" class="form-control" id="organizationName" name="organizationName"
+                   [(ngModel)]="signUpModel.organizationName" minlength="4"
+                   #organizationName="ngModel" ngModel required/>
+
+            <show-errors [isFormSubmitted]="f.submitted" [control]="organizationName"></show-errors>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email address</label>
+            <input type="email" class="form-control" id="email" name="email"
+                   [(ngModel)]="signUpModel.email" maxlength="70"
+                   #email="ngModel" email="true" ngModel required/>
+
+            <show-errors [isFormSubmitted]="f.submitted" [control]="email"></show-errors>
+          </div>
+
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" name="announcement" #announcement="ngModel" [(ngModel)]="announcementFlag"
+                     ngModel/>
+              Subscribe to get announcements.
+            </label>
+          </div>
+
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" name="tos" #tos="ngModel" [(ngModel)]="ToSFlag" ngModel required/>
+              I have read & agree to the <a href="" data-toggle="modal" data-target="#tosPopUp">Terms of service</a>.
+            </label>
+
+            <show-errors [isFormSubmitted]="f.submitted" [control]="tos"></show-errors>
+
+            <div class="modal fade" id="tosPopUp" role="dialog">
+              <div class="modal-dialog">
+
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h4 class="modal-title">Terms of Service</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                  </div>
+                  <div class="modal-body">
+                    <p style="max-height: 750px; overflow-y: auto;">{{terms}}</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <re-captcha name="recapt" #recapt="ngModel" ngModel required></re-captcha>
+          <show-errors [isFormSubmitted]="f.submitted" [control]="recapt"></show-errors>
+
+          <div class="text-center mt-5">
+            <button [disabled]="loading" type="submit"
+                    class="submit btn-block btn-shadow btn-shadow-info">
+              <i *ngIf="loading" class="fa fa-spinner fa-spin"></i> Create Account
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+      <div class="already-account">
+        Already have an account?
+        <a href="/signin">Sign in here</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<app-footer></app-footer>
+

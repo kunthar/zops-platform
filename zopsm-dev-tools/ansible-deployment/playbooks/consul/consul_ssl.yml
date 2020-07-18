@@ -1,0 +1,104 @@
+---
+- hosts: consul_servers
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: change consul-server config
+    template:
+      src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/templates/ssl_consul-server.json.j2
+      dest: /etc/consul.d/server.json
+      owner: consul
+      group: consul
+      mode: 0600
+    vars:
+      - encrypt: "no"
+
+  - name: create consul ssl folder
+    file:
+      path: /etc/consul.d/ssl
+      state: directory
+      owner: consul
+      group: consul
+      mode: 0700
+
+  - name: copy ca.cert
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/certs/ca.cert
+      dest: /etc/consul.d/ssl/ca.cert
+      owner: consul
+      group: consul
+      mode: 0600
+
+  - name: copy consul.cert
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/certs/CAbundles/consul/consul.cert
+      dest: /etc/consul.d/ssl/consul.cert
+      owner: consul
+      group: consul
+      mode: 0600
+
+  - name: copy consul.key
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/certs/CAbundles/consul/consul.key
+      dest: /etc/consul.d/ssl/consul.key
+      owner: consul
+      group: consul
+      mode: 0600
+
+  - name: stop consul.service on nodes
+    systemd:
+      state: restarted
+      name: consul
+
+- hosts: consul_clients
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: create consul ssl folder
+    file:
+      path: /etc/consul.d/ssl
+      state: directory
+      owner: consul
+      group: consul
+      mode: 0700
+
+  - name: copy ca.cert
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/certs/ca.cert
+      dest: /etc/consul.d/ssl/ca.cert
+      owner: consul
+      group: consul
+      mode: 0600
+
+  - name: copy consul.cert
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/certs/CAbundles/consul/consul.cert
+      dest: /etc/consul.d/ssl/consul.cert
+      owner: consul
+      group: consul
+      mode: 0600
+
+  - name: copy consul.key
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/certs/CAbundles/consul/consul.key
+      dest: /etc/consul.d/ssl/consul.key
+      owner: consul
+      group: consul
+      mode: 0600
+
+  - name: change consul-server config
+    template:
+      src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/templates/ssl_consul-client.json.j2
+      dest: /etc/consul.d/client.json
+      owner: consul
+      group: consul
+      mode: 0600
+    vars:
+      - encrypt: "no"
+
+  - name: stop consul.service on nodes
+    systemd:
+      state: restarted
+      name: consul

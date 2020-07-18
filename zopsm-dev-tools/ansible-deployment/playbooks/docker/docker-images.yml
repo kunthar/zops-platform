@@ -1,0 +1,174 @@
+---
+- hosts: workers
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: ensure locale is en_US.UTF-8
+    locale_gen:
+      name: en_US.UTF-8
+      state: present
+
+  - name: ensure python-pip
+    apt: pkg=python-pip state=present
+  
+  - name: export LC_ALL, --upgrade setuptools
+    shell: bash export LC_ALL=C; pip install --upgrade setuptools
+
+  - name: install docker-py
+    pip:
+      name: docker
+
+  - name: copy zopsm-base Dockerfile to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/zopsm-base/Dockerfile
+      dest: /home/ubuntu
+
+  - name: copy patch for Dockerfile to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/zopsm-base/pfile.patch
+      dest: /home/ubuntu
+
+  - name: build zopsm-base image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/zopsm-base
+      api_version: 1.32
+      force: yes
+#      nocache: yes
+      pull: no
+      state: present
+
+  - name: copy zmta Dockerfile to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/zmta/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build zmta image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/zmta
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+  - name: copy mda Dockerfile to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/mda/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build mda image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/mda
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+  - name: copy auth Dockerfile to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/auth/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build auth image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/auth
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+  - name: copy gw Dockerfile to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/zgateway/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build gw image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/gw
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+  - name: copy push Dockerfile to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/push/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build push image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/push
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+  - name: copy saas Dockerfile to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/saas/Dockerfile
+      dest: /home/ubuntu
+    tags:
+      - copy_saas
+
+  - name: build saas image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/saas
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+    tags:
+      - build_saas
+
+  - name: copy docs Dockerfile to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/docs/Dockerfile
+      dest: /home/ubuntu
+    tags:
+      - copy_docs
+
+  - name: copy rest_api_render.py to home folder
+    copy:
+      src:  /home/ubuntu/zopsm/docs/rest_api_render.py
+      dest: /home/ubuntu
+    tags:
+      - copy_script
+
+  - name: copy entrypoint.sh to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/docs/entrypoint.sh
+      dest: /home/ubuntu
+    tags:
+      - copy_entrypoint
+
+  - name: build docs image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/zopsm_docs
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+    tags:
+      - build_docs
+
+  - name: copy zlogger Dockerfile to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/logger/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build zlogger image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/zlogger
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present

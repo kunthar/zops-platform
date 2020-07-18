@@ -1,0 +1,18 @@
+[Unit]
+Description=Riak is a distributed data store
+Before=riak-consul.service
+Requires=riak-consul.service
+After=consul.service
+
+[Service]
+LimitNOFILE=300000
+ExecStart=/usr/sbin/riak start
+ExecStop=/usr/sbin/riak stop
+User=riak
+Type=forking
+PIDFile=/var/run/riak/riak.pid
+EnvironmentFile=-/etc/default/riak
+RuntimeDirectory=riak
+
+[Install]
+WantedBy=multi-user.target

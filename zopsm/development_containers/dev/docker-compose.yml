@@ -1,0 +1,401 @@
+# Use postgres/example user/password credentials
+version: '3'
+networks:
+  zops:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.25.0.0/24
+
+services:
+    riak_single:
+      image: zetaops/zopsm-riak
+      ports:
+        - "8087:8087"
+        - "8098:8098"
+      environment:
+        - CLUSTER_NAME=riakkv
+      labels:
+      - "com.basho.riak.cluster.name=riakkv"
+      networks:
+          zops:
+            ipv4_address: 172.25.0.112
+
+    rabbitmq:
+        image: rabbitmq:3.6-management
+        ports:
+          - "5672:5672"
+          - "15672:15672"
+        environment:
+          RABBITMQ_DEFAULT_VHOST: zopsm
+          RABBITMQ_DEFAULT_USER: zopsm
+          RABBITMQ_DEFAULT_PASS: 'chauj5DuX'
+        networks:
+          zops:
+            ipv4_address: 172.25.0.111
+
+    redis_master:
+        image: zetaops/zopsm-redis
+        restart: always
+        ports:
+          - "6379:6379"
+        environment:
+          REDIS_MODE: "master"
+        networks:
+          zops:
+            ipv4_address: 172.25.0.110
+
+    redis_slave:
+        image: zetaops/zopsm-redis
+        restart: always
+        ports:
+          - "6380:6379"
+        environment:
+          REDIS_MASTER: "172.25.0.110"
+          REDIS_MODE: "slave"
+        networks:
+          zops:
+            ipv4_address: 172.25.0.128
+
+    db:
+        image: postgres:10.5
+        restart: always
+        environment:
+            POSTGRES_PASSWORD: 'ipoo3a'
+            POSTGRES_USER: 'zopsm'
+            POSTGRES_DB: 'zopsm'
+        networks:
+          zops:
+            ipv4_address: 172.25.0.109
+
+    consul:
+        image: consul:0.9.3
+        command: "agent -dev -client=0.0.0.0"
+        ports:
+         - 8500:8500
+        volumes:
+          - "${ZOPSM}/development_containers/service_checks:/consul/config"
+        networks:
+          zops:
+            ipv4_address: 172.25.0.114
+    vault:
+        image: zetaops/zopsm-vault
+        environment:
+          SKIP_SETCAP: "true"
+          VAULT_ADDR: "http://0.0.0.0:8200"
+          VAULT_DEV_ROOT_TOKEN_ID: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+          VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+          WORKING_ENVIRONMENT: "develop"
+        ports:
+         - 8200:8200
+        networks:
+          zops:
+            ipv4_address: 172.25.0.113
+
+#    migrater:
+#        image: zetaops/zopsm-saas
+#        restart: always
+#        ports:
+#            - 18000:8000
+#        environment:
+#            DB_NAME: 'zopsm'
+#            DB_PORT: 5432
+#            DB_HOST: "172.25.0.109"
+#            DB_USER: 'zopsm'
+#            DB_PASSWORD: 'ipoo3a'
+#            CONSUL_HOST: "172.25.0.114"
+#            SECRET_KEY: 'supersupersecretkey'
+#            DOCKER_HOST_IPV4: "172.25.0.149"
+#            CONTAINER_PORT: 8000
+#            VAULT_WORKING_PATH: "tokens"
+#            VAULT_DEV_TOKEN: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+#            WORKING_ENVIRONMENT: "develop"
+#            RABBIT_VHOST: "zopsm"
+#            RABBIT_EXCHANGE: "inter_comm"
+#            REDIS_DB: 0
+#        entrypoint: "/usr/local/bin/python3.6"
+#        command:
+#         - "/usr/local/lib/python3.6/site-packages/zopsm/saas/manage.py"
+#         - "reset"
+#        links:
+#          - vault
+#        volumes:
+#          - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+#          - ${ZOPSM}/development_containers/debug-eggs:/usr/local/lib/python3.6/site-packages/debug-eggs
+#        networks:
+#          zops:
+#            ipv4_address: 172.25.0.149
+
+    saas:
+        image: zetaops/zopsm-saas
+        restart: always
+        ports:
+            - 8000:10000
+        environment:
+            DB_USER: 'zopsm'
+            DB_PASSWORD: 'ipoo3a'
+            DB_NAME: 'zopsm'
+            DB_PORT: 5432
+            DB_HOST: "172.25.0.109"
+            CONSUL_HOST: "172.25.0.114"
+            SECRET_KEY: 'supersupersecretkey'
+            DOCKER_HOST_IPV4: "172.25.0.101"
+            CONTAINER_PORT: 10000
+            VAULT_WORKING_PATH: "tokens"
+            VAULT_DEV_TOKEN: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+            ACCOUNT_LIMIT: '{"project_limit": 5,"user_limit": 12, "message_limit": {"roc": 20,"push": 20,"sms": 0}}'
+            WORKING_ENVIRONMENT: "develop"
+            RABBIT_VHOST: "zopsm"
+            RABBIT_EXCHANGE: "inter_comm"
+            REDIS_DB: 0
+        entrypoint:
+          - "gunicorn"
+        command:
+           - "-c"
+           - "/usr/local/lib/python3.6/site-packages/zopsm/saas/saas_gunicorn_config.py"
+           - "zopsm.saas.server:app"
+        links:
+          - vault
+        volumes:
+          - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+          - ${ZOPSM}/development_containers/debug-eggs:/usr/local/lib/python3.6/site-packages/debug-eggs
+        networks:
+          zops:
+            ipv4_address: 172.25.0.101
+
+    roc:
+        image: zetaops/zopsm-roc
+        restart: always
+        ports:
+            - 8888:8888
+        environment:
+            CONSUL_HOST: "172.25.0.114"
+            DOCKER_HOST_IPV4: "172.25.0.102"
+            CONTAINER_PORT: 8888
+            VAULT_WORKING_PATH: "tokens"
+            VAULT_DEV_TOKEN: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+            WORKING_ENVIRONMENT: "develop"
+            RABBIT_VHOST: "zopsm"
+            RABBIT_EXCHANGE: "inter_comm"
+            REDIS_DB: 0
+        links:
+          - vault
+        volumes:
+          - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+          - ${ZOPSM}/development_containers/debug-eggs:/usr/local/lib/python3.6/site-packages/debug-eggs
+        networks:
+          zops:
+            ipv4_address: 172.25.0.102
+
+    push:
+        image: zetaops/zopsm-push
+        restart: always
+        ports:
+            - 9500:9500
+        environment:
+            CONSUL_HOST: "172.25.0.114"
+            DOCKER_HOST_IPV4: "172.25.0.103"
+            CONTAINER_PORT: 9500
+            RABBIT_VHOST: "zopsm"
+            RABBIT_EXCHANGE: "inter_comm"
+            VAULT_WORKING_PATH: "tokens"
+            VAULT_DEV_TOKEN: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+            WORKING_ENVIRONMENT: "develop"
+            REDIS_DB: 0
+        links:
+          - vault
+        volumes:
+          - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+          - ${ZOPSM}/development_containers/debug-eggs:/usr/local/lib/python3.6/site-packages/debug-eggs
+        networks:
+          zops:
+            ipv4_address: 172.25.0.103
+
+    #sms:
+    #    image: zetaops/zopsm-sms
+    #    restart: always
+    #    ports:
+    #        - 7000:7000
+    #    environment:
+    #        CONSUL_HOST: "172.25.0.114"
+    #        DOCKER_HOST_IPV4: "172.25.0.187"
+    #        CONTAINER_PORT: 7000
+    #        RABBIT_VHOST: "zopsm"
+    #        RABBIT_EXCHANGE: "inter_comm"
+    #        VAULT_WORKING_PATH: "tokens"
+    #        VAULT_DEV_TOKEN: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+    #       WORKING_ENVIRONMENT: "develop"
+    #        REDIS_DB: 0
+    #    links:
+    #      - vault
+    #    volumes:
+    #      - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+    #      - ${ZOPSM}/development_containers/debug-eggs:/usr/local/lib/python3.6/site-packages/debug-eggs
+    #    networks:
+    #      zops:
+    #        ipv4_address: 172.25.0.187
+
+    mda:
+        image: zetaops/zopsm-mda
+        restart: always
+        ports:
+            - 9000:9000
+        environment:
+            CONSUL_HOST: "172.25.0.114"
+            DOCKER_HOST_IPV4: "172.25.0.104"
+            CONTAINER_PORT: 9000
+            RABBIT_VHOST: "zopsm"
+            RABBIT_EXCHANGE: "inter_comm"
+            VAULT_WORKING_PATH: "tokens"
+            VAULT_DEV_TOKEN: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+            WORKING_ENVIRONMENT: "develop"
+            REDIS_DB: 0
+        links:
+          - vault
+        volumes:
+          - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+          - ${ZOPSM}/development_containers/debug-eggs:/usr/local/lib/python3.6/site-packages/debug-eggs
+        networks:
+          zops:
+            ipv4_address: 172.25.0.104
+
+    auth:
+        image: zetaops/zopsm-auth
+        restart: always
+        ports:
+            - 12345:8000
+        environment:
+            CONSUL_HOST: "172.25.0.114"
+            DOCKER_HOST_IPV4: "172.25.0.105"
+            CONTAINER_PORT: 8001
+            VAULT_WORKING_PATH: "tokens"
+            VAULT_DEV_TOKEN: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+            WORKING_ENVIRONMENT: "develop"
+            RABBIT_VHOST: "zopsm"
+            RABBIT_EXCHANGE: "inter_comm"
+            REDIS_DB: 0
+        links:
+          - vault
+        volumes:
+          - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+          # - ${ZOPSM}/development_containers/debug-eggs:/usr/local/lib/python3.6/site-packages/debug-eggs
+        networks:
+          zops:
+            ipv4_address: 172.25.0.105
+
+    workers:
+      image: zetaops/zopsm-workers
+      restart: always
+      environment:
+          CONSUL_HOST: "172.25.0.114"
+          DOCKER_HOST_IPV4: "172.25.0.106"
+          RABBIT_VHOST: "zopsm"
+          RABBIT_EXCHANGE: "inter_comm"
+          VAULT_WORKING_PATH: "tokens"
+          VAULT_DEV_TOKEN: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+          WORKING_ENVIRONMENT: "develop"
+          REDIS_DB: 0
+      links:
+          - vault
+      volumes:
+        - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+      networks:
+          zops:
+            ipv4_address: 172.25.0.106
+        # - ${ZOPSM}/development_containers/debug-eggs:/usr/local/lib/python3.6/site-packages/debug-eggs
+
+    logs:
+      image: zetaops/zopsm-logger
+      restart: always
+      environment:
+          CONSUL_HOST: "172.25.0.114"
+          DOCKER_HOST_IPV4: "172.25.0.107"
+          RABBIT_VHOST: "zopsm"
+          RABBIT_EXCHANGE: "inter_comm"
+          WORKING_ENVIRONMENT: "develop"
+          VAULT_WORKING_PATH: "tokens"
+          VAULT_DEV_TOKEN: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+      entrypoint: "/usr/local/bin/python3.6"
+      command:
+        - "-m"
+        - "zopsm.log.run"
+      links:
+          - vault
+      volumes:
+        - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+      networks:
+          zops:
+            ipv4_address: 172.25.0.107
+        # - ${ZOPSM}/development_containers/debug-eggs:/usr/local/lib/python3.6/site-packages/debug-eggs
+
+    counter:
+      image: zetaops/zopsm-logger
+      restart: always
+      environment:
+          CONSUL_HOST: "172.25.0.114"
+          DOCKER_HOST_IPV4: "172.25.0.108"
+          RABBIT_VHOST: "zopsm"
+          RABBIT_EXCHANGE: "inter_comm"
+          WORKING_ENVIRONMENT: "develop"
+          VAULT_WORKING_PATH: "tokens"
+          VAULT_DEV_TOKEN: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+      entrypoint: "/usr/local/bin/python3.6"
+      command:
+        - "-m"
+        - "zopsm.counter.run"
+      links:
+          - vault
+      volumes:
+        - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+      networks:
+          zops:
+            ipv4_address: 172.25.0.108
+        # - ${ZOPSM}/development_containers/debug-eggs:/usr/local/lib/python3.6/site-packages/debug-eggs
+
+    notifier:
+      image: zetaops/zopsm-logger
+      restart: always
+      environment:
+          CONSUL_HOST: "172.25.0.114"
+          DOCKER_HOST_IPV4: "172.25.0.115"
+          RABBIT_VHOST: "zopsm"
+          RABBIT_EXCHANGE: "inter_comm"
+          WORKING_ENVIRONMENT: "develop"
+          VAULT_WORKING_PATH: "tokens"
+          VAULT_DEV_TOKEN: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+      entrypoint: "/usr/local/bin/python3.6"
+      command:
+        - "-m"
+        - "zopsm.log_notifier.log_notifier"
+      links:
+          - vault
+      volumes:
+        - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+      networks:
+          zops:
+            ipv4_address: 172.25.0.115
+        # - ${ZOPSM}/development_containers/debug-eggs:/usr/local/lib/python3.6/site-packages/debug-eggs
+
+    event_processor:
+      image: zetaops/zopsm-logger
+      restart: always
+      environment:
+        CONSUL_HOST: "172.25.0.114"
+        DOCKER_HOST_IPV4: "172.25.0.115"
+        RABBIT_VHOST: "zopsm"
+        RABBIT_EXCHANGE: "inter_comm"
+        WORKING_ENVIRONMENT: "develop"
+        VAULT_WORKING_PATH: "tokens"
+        VAULT_DEV_TOKEN: "b258f5f2-fc67-24fe-3750-0055f625aa74"
+      entrypoint: "/usr/local/bin/python3.6"
+      command:
+        - "-m"
+        - "zopsm.event.event_processor"
+      links:
+        - vault
+      volumes:
+        - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+      networks:
+        zops:
+          ipv4_address: 172.25.0.116
+        # - ${ZOPSM}/development_containers/debug-eggs:/usr/local/lib/python3.6/site-packages/debug-eggs

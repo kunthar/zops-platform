@@ -1,0 +1,59 @@
+- hosts: postgres
+  remote_user: ubuntu
+  gather_facts: yes
+  become: yes
+
+  tasks:
+  - name: ensure locale is en_US.UTF-8
+    locale_gen:
+      name: en_US.UTF-8
+      state: present
+
+  - name: add postgresql official apt repository
+    apt_repository: repo='deb http://apt.postgresql.org/pub/repos/apt/ "{{ ansible_distribution_release }}"-pgdg main' state=present
+
+  - name: add trusted key
+    apt_key: url=https://www.postgresql.org/media/keys/ACCC4CF8.asc state=present
+
+  - name: update trusted keys
+    command: apt-key update
+
+  - name: install postgresql-10 and pip, pip3
+    apt: pkg={{ item }} update_cache=yes state=latest
+    with_items:
+       - postgresql
+       - libpq-dev
+       - python-pip
+       - python3-pip
+
+  - name: export LC_ALL, --upgrade setuptools
+    shell: bash export LC_ALL=C; pip install --upgrade setuptools
+
+  - name: install psycopg2 with pip
+    pip:
+      name: psycopg2
+      state: latest
+
+  - name: change listen_addresses in postgresql.conf
+    lineinfile:
+      path: /etc/postgresql/10/main/postgresql.conf
+      line: listen_addresses='*'
+      state: present
+
+  - name: change listen_addresses in postgresql.conf
+    lineinfile:
+      path: /etc/postgresql/10/main/postgresql.conf
+      line: listen_addresses='*'
+      state: present
+
+  - name: add new configuration to "/etc/postgresql/10/main/pg_hba.conf"
+    blockinfile:
+      dest: /etc/postgresql/10/main/pg_hba.conf
+      block: |
+        host    all             zopsm             159.69.0.0/24           md5
+      state: present
+
+  - name: restart postgresql.service
+    systemd:
+      name: postgresql
+      state: restarted

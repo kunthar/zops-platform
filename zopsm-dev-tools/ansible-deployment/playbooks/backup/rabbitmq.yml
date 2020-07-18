@@ -1,0 +1,34 @@
+---
+- hosts: rabbitmq
+  become: yes
+  remote_user: ubuntu
+
+  tasks:
+  - name: download rabbitmqadmin script
+    get_url:
+      url: http://{{ ansible_default_ipv4.address }}:15672/cli/rabbitmqadmin
+      dest: /usr/local/bin/rabbitmqadmin
+      mode: 0700
+
+  - name: create /var/backups/rabbitmq
+    file:
+      path: /var/backups/rabbitmq
+      state: directory
+
+  - name: copy backup script
+    template:
+        src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/playbooks/backup/templates/backup_rabbitmq.sh.j2
+        dest: /usr/local/bin/backup_rabbitmq.sh
+        owner: root
+        group: root
+        mode: 0744
+
+  - name: backup rabbitmq
+    cron:
+      name: "backup rabbitmq"
+      minute: "{{ 60 |random }}"
+      hour: 5
+      job: '/usr/local/bin/backup_rabbitmq.sh'
+      cron_file: rabbitmq
+      user: "root"
+      state: present

@@ -1,0 +1,138 @@
+#- hosts: workers
+#  remote_user: ubuntu
+#  become: yes
+#
+#  tasks:
+#---
+  - name: stop and remove worker
+    shell: docker stop {{ ansible_local.zopsm.container.worker }} && docker rm {{ ansible_local.zopsm.container.worker }}
+    tags:
+      - remove_worker
+
+  - name: stop and remove mda
+    shell: docker stop {{ ansible_local.zopsm.container.mda }} && docker rm {{ ansible_local.zopsm.container.mda }}
+    tags:
+      - remove_mda
+
+  - name: stop and remove gateway
+    shell: docker stop {{ ansible_local.zopsm.container.gateway }} && docker rm {{ ansible_local.zopsm.container.gateway }}
+    tags:
+      - remove_gateway
+
+  - name: stop and remove auth
+    shell: docker stop {{ ansible_local.zopsm.container.auth }} && docker rm {{ ansible_local.zopsm.container.auth }}
+    tags:
+      - remove_auth
+
+  - name: stop and remove push
+    shell: docker stop {{ ansible_local.zopsm.container.push }} && docker rm {{ ansible_local.zopsm.container.push }}
+    tags:
+      - remove_push
+
+  - name: stop and remove saas
+    shell: docker stop {{ ansible_local.zopsm.container.saas }} && docker rm {{ ansible_local.zopsm.container.saas }}
+    tags:
+      - remove_saas
+
+  - name: stop and remove push docs
+    shell: docker stop {{ ansible_local.zopsm.container.push_docs }} && docker rm {{ ansible_local.zopsm.container.push_docs }}
+    tags:
+      - remove_docs
+
+  - name: stop and remove roc docs
+    shell: docker stop {{ ansible_local.zopsm.container.roc_docs }} && docker rm {{ ansible_local.zopsm.container.roc_docs }}
+    tags:
+      - remove_docs
+
+  - name: stop and remove nginx
+    shell: docker stop {{ ansible_local.zopsm.container.nginx }} && docker rm {{ ansible_local.zopsm.container.nginx }}
+    tags:
+      - remove_docs
+
+  - name: stop and remove tests
+    shell: docker stop {{ ansible_local.zopsm.container.tests }} && docker rm {{ ansible_local.zopsm.container.tests }}
+    tags:
+      - remove_tests
+
+  - name: stop and remove zlogger
+    shell: docker stop {{ ansible_local.zopsm.container.zlogger }} && docker rm {{ ansible_local.zopsm.container.zlogger }}
+    tags:
+      - remove_zlogger
+#
+#  ############# WORKER #####################
+#  - name: find worker
+#    shell: docker ps --format \{\{.Names\}\} | grep worker
+#    register: worker
+#    tags:
+#      - find_worker
+#
+#  - name: stop and remove worker
+#    shell: docker stop {{ worker.stdout }} && docker rm {{ worker.stdout }}
+#    tags:
+#      - remove_worker
+#  ##################################
+#
+#  ############### MDA ###################
+#  - name: find mda
+#    shell: docker ps --format \{\{.Names\}\} | grep mda
+#    register: mda
+#    tags:
+#      - find_mda
+#
+#  - name: stop and remove mda
+#    shell: docker stop {{ mda.stdout }} && docker rm {{ mda.stdout }}
+#    tags:
+#      - remove_mda
+#  ##################################
+#
+#  ########### GATEWAY #################
+#  - name: find gateway
+#    shell: docker ps --format \{\{.Names\}\} | grep gateway
+#    register: gateway
+#    tags:
+#      - find_gateway
+#
+#  - name: stop and remove gateway
+#    shell: docker stop {{ gateway.stdout }} && docker rm {{ gateway.stdout }}
+#    tags:
+#      - remove_gateway
+#  ##################################
+#
+#  ############### AUTH ###################
+#  - name: find auth
+#    shell: docker ps --format \{\{.Names\}\} | grep auth
+#    register: auth
+#    tags:
+#      - find_auth
+#
+#  - name: stop and remove auth
+#    shell: docker stop {{ auth.stdout }} && docker rm {{ auth.stdout }}
+#    tags:
+#      - remove_auth
+#  ##################################
+#
+#  ############### PUSH ###################
+#  - name: find push
+#    shell: docker ps --format \{\{.Names\}\} | grep push
+#    register: push
+#    tags:
+#      - find_push
+#
+#  - name: stop and remove push
+#    shell: docker stop {{ push.stdout }} && docker rm {{ push.stdout }}
+#    tags:
+#      - remove_push
+#  ##################################
+#
+#  ############### SAAS ###################
+#  - name: find saas
+#    shell: docker ps --format \{\{.Names\}\} | grep saas
+#    register: saas
+#    tags:
+#      - find_saas
+#
+#  - name: stop and remove saas
+#    shell: docker stop {{ saas.stdout }} && docker rm {{ saas.stdout }}
+#    tags:
+#      - remove_saas
+#  ##################################

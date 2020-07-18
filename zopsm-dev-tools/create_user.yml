@@ -1,0 +1,38 @@
+---
+- hosts: all
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: Add the user 'zopsman' 
+    user:
+      name: zopsman
+      group: sudo
+
+  - name: Create .ssh folder
+    file:
+      path: /home/zopsman/.ssh
+      state: directory
+      owner: zopsman
+      mode: 0755
+
+  - name: Create authorized_keys file
+    file:
+      path: /home/zopsman/.ssh/authorized_keys
+      state: touch
+      owner: zopsman
+      mode: 0644
+  
+  - name: Set authorized key taken from file
+    authorized_key:
+      user: zopsman
+      state: present
+      key: "{{ lookup('file', '/home/ubuntu/.ssh/id_rsa.pub') }}"
+
+  - name: insert/update "Match User" configuration block in /etc/ssh/sshd_config
+    blockinfile:
+      path: /etc/sudoers
+      backup: yes
+      block: |
+        zopsman ALL=NOPASSWD: ALL
+        ubuntu ALL=NOPASSWD: ALL

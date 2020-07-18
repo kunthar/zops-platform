@@ -1,0 +1,13 @@
+{
+    "service": {
+        "name": "riak",
+        "tags": ["riak-service"],
+        "address": "172.25.0.112",
+        "port": 8098,
+        "enableTagOverride": false,
+        "checks": [{
+            "http": "http://172.25.0.112:8098/ping",
+            "interval": "10s"
+        }]
+    }
+}

@@ -1,0 +1,133 @@
+- hosts: workers
+  become: yes
+  remote_user: ubuntu
+
+  tasks:
+  - name: create /home/ubuntu/buildbot-conf-files
+    file:
+      path: /home/ubuntu/buildbot-conf-files
+      state: directory
+
+  - name: copy buildbot/master/Dockerfile to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/master/Dockerfile
+      dest: /home/ubuntu/buildbot-conf-files/Dockerfile
+
+  - name: copy buildbot/master/master.cfg to home folder
+    template:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/master/master.cfg.j2
+      dest: /home/ubuntu/buildbot-conf-files/master.cfg
+
+  - name: copy buildbot/master/buildbot.tac to home folder
+    template:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/master/buildbot.tac
+      dest: /home/ubuntu/buildbot-conf-files/buildbot.tac
+
+  - name: copy buildbot/master/start_buildbot.sh to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/master/start_buildbot.sh
+      dest: /home/ubuntu/buildbot-conf-files/start_buildbot.sh
+
+  - name: build zetaops/buildbot-master image
+    docker_image:
+      path: /home/ubuntu/buildbot-conf-files
+      name: zetaops/buildbot-master
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+
+###############################################################
+
+  - name: zaa
+    copy:
+      src: /home/ubuntu/.ssh/zetaopsbot
+      dest: /home/ubuntu/id_rsa
+
+  - name: copy zetaops/resttest-worker Dockerfile to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/worker/resttest/Dockerfile
+      dest: /home/ubuntu
+
+  - name: copy zetaops/resttest-worker worker.tac to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/worker/resttest/worker.tac
+      dest: /home/ubuntu
+
+  - name: copy zetaops/resttest-worker ssh-key.sh to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/worker/resttest/ssh-key.sh
+      dest: /home/ubuntu
+
+  - name: build zetaops/resttest-worker image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/resttest-worker
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+
+##############################################################
+
+  - name: copy zetaops/ansible-container-worker Dockerfile to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/worker/tests_by_ansible/Dockerfile
+      dest: /home/ubuntu
+
+  - name: copy zetaops/ansible-container-worker worker.tac to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/worker/tests_by_ansible/worker.tac
+      dest: /home/ubuntu
+
+  - name: copy zetaops/ansible-container-worker ssh-key.sh to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/worker/tests_by_ansible/ssh-key.sh
+      dest: /home/ubuntu
+
+  - name: build zetaops/ansible-container-worker image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/ansible-container-worker
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+##############################################################
+  - name: zaa
+    copy:
+      src: /home/ubuntu/.ssh/zetaopsbot
+      dest: /home/ubuntu/id_rsa
+      
+  - name: copy zetaops/zopsm-frontend-worker Dockerfile to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/worker/zopsm-frontend/Dockerfile
+      dest: /home/ubuntu
+
+  - name: copy zetaops/zopsm-frontend-worker worker.tac to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/worker/zopsm-frontend/worker.tac
+      dest: /home/ubuntu
+
+  - name: copy zetaops/zopsm-frontend-worker ssh-key.sh to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/worker/zopsm-frontend/ssh-key.sh
+      dest: /home/ubuntu
+
+  - name: copy zetaops/zopsm-frontend-worker docbox.sh to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/buildbot/worker/zopsm-frontend/docbox.sh
+      dest: /home/ubuntu
+
+  - name: build zetaops/zopsm-frontend-worker image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/zopsm-frontend-worker
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+

@@ -1,0 +1,87 @@
+<app-header></app-header>
+
+<div class="dashboard-bar navbar navbar-expand-lg">
+  <div style="width: 100%;">
+
+    <button class="navbar-toggler navbar-dark" data-toggle="collapse" data-target="#dashbar-collapse">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse justify-content-start" id="dashbar-collapse">
+      <ul class="navbar-nav">
+
+        <li class="nav-item dropdown">
+          <a class="btn btn-outline-dark" href="" id="navbarDropdownMenuLink" role="button"
+             data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            {{defaultProj}} <i class="ion-arrow-down-b"></i>
+          </a>
+          <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+            <a *ngFor="let p of projectList" class="dropdown-item" href="/dashboard/{{p.id}}">{{p.name}}</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="/dashboard/new-project">New Project</a>
+            <a class="dropdown-item" href="/dashboard">All Projects</a>
+          </div>
+        </li>
+
+        <li *ngFor="let n of codeNames; index as i" class="nav-item">
+          <a *ngIf="projectsServices[i] && showServicesOnTab && codeNames[i] != serviceId"
+             class="btn btn-outline-dark"
+             href="/dashboard/{{projectId}}/{{codeNames[i]}}">
+            <div *ngIf="n == 'roc'" class="service-item">
+              <img src="../../../assets/images/zops/icons/roc-service.png" class="mr-2 img-fluid" height="20px" width="20px"/>
+              {{names[i]}}
+            </div>
+            <div *ngIf="n == 'push'" class="service-item">
+              <img src="../../../assets/images/zops/icons/push-service.png" class="mr-2 img-fluid" height="20px" width="20px"/>
+              {{names[i]}}
+            </div>
+            <div *ngIf="n == 'sms'" class="service-item">
+              <img src="../../../assets/images/zops/icons/sms-service.png" class="mr-2 img-fluid" height="20px" width="20px"/>
+              {{names[i]}}
+            </div>
+            <div *ngIf="n == 'm2m'" class="service-item">
+              <img src="../../../assets/images/zops/icons/m2m-service.png" class="mr-2 img-fluid" height="20px" width="20px"/>
+              {{names[i]}}
+            </div>
+          </a>
+          <a *ngIf="projectsServices[i] && showServicesOnTab && codeNames[i] == serviceId"
+             class="btn btn-dark focus"
+             href="/dashboard/{{projectId}}/{{codeNames[i]}}">
+            <div *ngIf="n == 'roc'" class="service-item">
+              <img src="../../../assets/images/zops/icons/roc-white.png" class="mr-2 img-fluid" height="20px" width="20px"/>
+              {{names[i]}}
+            </div>
+            <div *ngIf="n == 'push'" class="service-item">
+              <img src="../../../assets/images/zops/icons/push-white.png" class="mr-2 img-fluid" height="20px" width="20px"/>
+              {{names[i]}}
+            </div>
+            <div *ngIf="n == 'sms'" class="service-item">
+              <img src="../../../assets/images/zops/icons/sms-white.png" class="mr-2 img-fluid" height="20px" width="20px"/>
+              {{names[i]}}
+            </div>
+            <div *ngIf="n == 'm2m'" class="service-item">
+              <img src="../../../assets/images/zops/icons/m2m-white.png" class="mr-2 img-fluid" height="20px" width="20px"/>
+              {{names[i]}}
+            </div>
+          </a>
+
+          <a *ngIf="!projectsServices[i] && showServicesOnTab && codeNames[i] != serviceId"
+             class="btn btn-outline-secondary service-item"
+             href="/dashboard/{{projectId}}/{{codeNames[i]}}">
+            {{names[i]}}
+          </a>
+          <a *ngIf="!projectsServices[i] && showServicesOnTab && codeNames[i] == serviceId"
+             class="btn btn-secondary focus service-item"
+             href="/dashboard/{{projectId}}/{{codeNames[i]}}">
+            {{names[i]}}
+          </a>
+        </li>
+
+      </ul>
+    </div>
+
+  </div>
+
+  <div style="text-align: end; width: 50%;">
+  </div>
+</div>

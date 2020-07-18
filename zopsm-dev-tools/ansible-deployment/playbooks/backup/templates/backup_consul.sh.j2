@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+export CONSUL_HTTP_ADDR={{ ansible_default_ipv4.address }}:8500
+
+/usr/local/bin/consul snapshot save /var/backups/consul/consul-`date "+%d-%m-%Y-%H-%M-%S"`.snap

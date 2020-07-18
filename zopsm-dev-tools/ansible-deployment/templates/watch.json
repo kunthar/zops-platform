@@ -1,0 +1,55 @@
+{
+  "watches": [
+      {
+        "type": "service",
+        "service": "redis",
+        "args": ["/home/ubuntu/sighups/auth_sighup.py"]
+      },
+      {
+        "type": "service",
+        "service": "redis",
+        "args": ["/home/ubuntu/sighups/mda_sighup.py"]
+      },
+      {
+        "type": "service",
+        "service": "redis",
+        "args": ["/home/ubuntu/sighups/push_sighup.py"]
+      },
+      {
+        "type": "service",
+        "service": "redis",
+        "args": ["/home/ubuntu/sighups/roc_sighup.py"]
+      },
+      {
+        "type": "service",
+        "service": "redis",
+        "args": ["/home/ubuntu/sighups/saas_sighup.py"]
+      },
+
+      {
+        "type": "service",
+        "service": "rabbitmq",
+        "args": ["/home/ubuntu/sighups/auth_sighup.py"]
+      },
+      {
+        "type": "service",
+        "service": "rabbitmq",
+        "args": ["/home/ubuntu/sighups/mda_sighup.py"]
+      },
+      {
+        "type": "service",
+        "service": "rabbitmq",
+        "args": ["/home/ubuntu/sighups/push_sighup.py"]
+      },
+      {
+        "type": "service",
+        "service": "rabbitmq",
+        "args": ["/home/ubuntu/sighups/roc_sighup.py"]
+      },
+      {
+        "type": "service",
+        "service": "rabbitmq",
+        "args": ["/home/ubuntu/sighups/saas_sighup.py"]
+      }
+  ]
+}

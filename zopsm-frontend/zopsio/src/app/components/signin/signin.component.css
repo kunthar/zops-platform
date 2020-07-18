@@ -1,0 +1,23 @@
+.container {
+  padding: 20px;
+}
+
+.forgotpswd{
+  font-size: 13px;
+  margin-top: 3px;
+  float:left;
+}
+
+.session-page .wrapper {
+  border-top: 2px solid #227790;
+}
+.btn-shadow.btn-shadow-info {
+  background: #104C5E;
+  font-size: 13px;
+  font-family: Roboto;
+  letter-spacing: 2px;
+  font-weight: lighter;
+}
+.session-page .already-account:hover{
+  color: #104C5E !important;
+}

@@ -1,0 +1,159 @@
+.signup-rotate {
+  background: #f3f5f7;
+
+  .header {
+    text-align: center;
+    padding-top: 50px;
+    
+    .logo {
+      color: #222;
+      font-size: 34px;
+      text-decoration: none;
+    }
+
+    h4 {
+      color: #222;
+      font-size: 25px;
+      font-weight: 400;
+      margin-top: 50px;
+    }
+
+    p {
+      color: #444;
+      margin-top: 10px;
+    }
+  }
+
+  .rotate-container {
+    -webkit-perspective: 1000;
+    -moz-perspective: 1000;
+      -ms-perspective: 1000;
+      -o-perspective: 1000;
+    margin: 0 auto;
+  }
+
+  .wrappers {
+    min-height: 455px;
+
+    @include transitionPrefix(transform, 1s);
+    
+    -webkit-transform-style: preserve-3d;
+    -moz-transform-style: preserve-3d;
+      -ms-transform-style: preserve-3d;
+      -o-transform-style: preserve-3d;
+      transform-style: preserve-3d;
+
+    &.flipped {
+      @include transform(rotateY(180deg));
+    }
+
+    &.flipped-ended {
+      .front {
+        z-index: 1;
+      }
+      .back {
+        z-index: 3;
+      }
+    }
+  }
+
+  .wrapper {
+    margin: 0 auto;
+    width: 51%;
+    margin-top: 25px;
+    background: #fff;
+    padding: 15px 50px 40px 50px;
+    border-radius: 4px;
+    border-top: 2px solid #42b1e2;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.15);
+
+    @media(max-width: 991px) {
+      width: 67%;
+    }
+
+    @media(max-width: 767px) {
+      width: 100%;
+    }
+
+    position: absolute;
+    left: 0;
+    right: 0;
+
+    -webkit-backface-visibility: hidden;
+      -moz-backface-visibility: hidden;
+      -o-backface-visibility: hidden;
+
+      /* These are commented out because they break the rotation on IE */
+      /*-ms-backface-visibility: hidden;*/
+      /*backface-visibility: hidden;*/
+
+    -webkit-transform-style: preserve-3d;
+    -moz-transform-style: preserve-3d;
+      -ms-transform-style: preserve-3d;
+      -o-transform-style: preserve-3d;
+      transform-style: preserve-3d;
+
+      &.front {
+        z-index: 3;
+      }
+
+    &.back {
+      z-index: 1;
+
+      @include transform(rotateY(180deg));
+
+      h4 {
+        margin-top: -5px;
+        margin-bottom: 45px;
+        text-align: center;
+        font-weight: 400;
+      }
+    }
+
+    .formy {
+      margin-top: 22px;
+
+      .form-group {
+        label {
+          color: #46515F;
+        }
+      }
+
+      .checkbox {
+        label {
+          color: #666;
+          font-size: 13px;
+        }
+
+        input {
+          position: relative;
+          top: -1px;
+        }
+      }
+    }
+  }
+
+  .change-view {
+    text-align: center;
+    color: #333;
+    margin-top: 35px;
+    margin-bottom: 70px;
+    font-size: 13px;
+    font-weight: 500;
+    display: none;
+
+    &.active {
+      display: block;
+    }
+
+    a {
+      text-decoration: underline;
+    }
+
+    .popover-content {
+      color: #000;
+      font-size: 17px;
+      font-weight: 400;
+    }
+  }
+}

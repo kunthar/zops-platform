@@ -1,0 +1,136 @@
+- hosts: worker-01
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: install jq
+    apt: pkg=jq
+
+  - name: copy zetaops/nginx-frontend entrypoint.sh to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/nginx/entrypoint.sh
+      dest: /home/ubuntu
+
+  - name: copy zetaops/nginx-frontend Dockerfile to home folder
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/containers/nginx/Dockerfile
+      dest: /home/ubuntu
+
+  - name: copy zetaops/nginx-frontend default.conf to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/nginx/default.conf
+      dest: /home/ubuntu
+
+  - name: copy zetaops/nginx-frontend docs.conf to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/nginx/docs.conf
+      dest: /home/ubuntu
+
+  - name: copy zetaops/nginx-frontend gw.conf to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/nginx/gw.conf
+      dest: /home/ubuntu
+
+  - name: copy zetaops/nginx-frontend nginx.conf to home folder
+    copy:
+      src:  /home/ubuntu/zopsm-dev-tools/containers/nginx/nginx.conf
+      dest: /home/ubuntu
+
+  - name: build zetaops/nginx-frontend image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/nginx-frontend
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+    tags:
+      - build_frontend_nginx
+
+  - name: create local facts folder
+    file:
+      path: /etc/ansible/facts.d
+      state: directory
+      mode: 0755
+
+  - name: create local facts zopsm.fact
+    file:
+      path: /etc/ansible/facts.d/zopsm_frontend.fact
+      state: touch
+
+  - name: set container names
+    set_fact:
+      nginx: "nginx{{ 1000 |random }}"
+      zopsio: "zopsio{{ 1000 |random }}"
+      docs: "docs{{ 1000 |random }}"
+      zopsio_port: "{{ 65000 | random(start=60001)}}"
+      docs_port: "{{ 60000 | random(start=55001)}}"
+  
+  - name: create /opt/zopsm.io/zopsio/dist/
+    file:
+      dest: /opt/zopsm.io/zopsio/dist/
+      state: directory
+      
+  - name: create nginx status file for consul check
+    file:
+      dest: /opt/zopsm.io/zopsio/dist/zopsio_status
+      state: touch
+
+  - name: remove old docs service from consul
+    shell: curl {{ ansible_default_ipv4.address }}:8500/v1/health/service/docs | jq -r .[] | jq -r "select(.Checks[1].Status != \"critical\")" | jq -r '("curl -X PUT " + .Service.Address + ":8500/v1/agent/service/deregister/" + .Service.ID)' | xargs -I '{}' bash -c '{}'
+
+  - name: remove old zopsio service from consul
+    shell: curl {{ ansible_default_ipv4.address }}:8500/v1/health/service/zopsio | jq -r .[] | jq -r "select(.Checks[1].Status != \"critical\")" | jq -r '("curl -X PUT " + .Service.Address + ":8500/v1/agent/service/deregister/" + .Service.ID)' | xargs -I '{}' bash -c '{}'
+
+  - name: run nginx container
+    docker_container:
+      name: "{{ nginx }}"
+      image: "zetaops/nginx-frontend"
+      api_version: 1.32
+      restart_policy: unless-stopped
+      volumes:
+        - "/opt/zopsm.io/:/usr/share/nginx/zopsio/:rw"
+        - "/opt/zopsm_docs/dist/:/usr/share/nginx/docs:rw"
+      ports:
+        - "{{ zopsio_port }}:80"
+        - "{{ docs_port }}:8080"
+        - "11223:11223"
+      state: started
+
+  - name: register zopsio with an http check
+    consul:
+      host: "{{ ansible_default_ipv4.address }}"
+      service_name: zopsio
+      service_id: "{{ zopsio }}"
+      service_address: "{{ ansible_default_ipv4.address }}"
+      service_port: "{{ zopsio_port }}"
+      interval: 60s
+      check_name: zopsio
+      check_id: "{{ zopsio }}"
+      http: http://{{ ansible_default_ipv4.address }}:{{ zopsio_port }}/zopsio_status
+      state: present
+
+  - name: register docs with an http check
+    consul:
+      host: "{{ ansible_default_ipv4.address }}"
+      service_name: docs
+      service_id: "{{ docs }}"
+      service_address: "{{ ansible_default_ipv4.address }}"
+      service_port: "{{ docs_port }}"
+      interval: 60s
+      check_name: docs
+      check_id: "{{ docs }}"
+      http: http://{{ ansible_default_ipv4.address }}:{{ docs_port }}/status
+      state: present
+
+  - name: stop nginx container
+    shell: docker stop {{ ansible_local.zopsm_frontend.container.nginx }} && docker rm {{ ansible_local.zopsm_frontend.container.nginx }}
+    ignore_errors: yes
+
+  - name: write /etc/ansible/facts.d/zopsm_frontend.fact
+    blockinfile:
+      dest: /etc/ansible/facts.d/zopsm_frontend.fact
+      block: |
+        [container]
+        nginx={{ nginx }}
+      state: present

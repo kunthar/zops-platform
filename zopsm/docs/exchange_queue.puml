@@ -1,0 +1,98 @@
+@startuml
+title Messaging Platform Exchange Queue Diagram \n 10 Tenant / 100 Application
+
+' 10 tenant
+' 100 Application
+' 250K User
+' 2.5B Message
+' Tenant exchanges ~600K Message
+' App Exchanges ~250K Messages
+'
+
+database riak [
+  Riak Cluster
+  ----
+  Bucket_Tenant_01
+  ----
+  Bucket_Tenant_02
+  ---
+  Bucket_Tenant_03
+  ----
+  Bucket_Tenant_04
+  ----
+  Bucket_Tenant_05
+  ----
+  ...
+  ----
+  Bucket_Tenant_n
+]
+'queue queue_post_commit_hook
+stack exchange.tenant_01..03
+stack exchange.tenant_04..06
+stack exchange.tenant_07..09
+stack exchange.tenant_10
+
+stack exchange.app_01..05
+stack exchange.app_06..10
+stack exchange.app_11..16
+stack exchange.app_17..20
+stack exchange.app_21..30
+stack exchange.app_31..40
+stack exchange.app_41..60
+stack exchange.app_61..75
+stack exchange.app_75..100
+
+
+'queue queue.application.01
+'queue queue.application.02
+'queue queue.application.03
+'queue queue.application.04
+'queue queue.application.05
+'queue queue.application.06
+'queue queue.application.07
+'queue queue.application.08
+'queue queue.application.09
+'queue queue.application.10
+
+riak ~~> exchange.tenant_01..03 : tenant_[01-03].*.*
+riak ~~> exchange.tenant_04..06 : tenant_[04-06].*.*
+riak ~~> exchange.tenant_07..09 : tenant_[07-09].*.*
+riak ~~> exchange.tenant_10     : tenant_10.*.*
+
+exchange.tenant_01..03 ~~> exchange.app_01..05 : as
+exchange.tenant_01..03 ~~> exchange.app_06..10 : as
+exchange.tenant_01..03 ~~> exchange.app_11..16 : as
+exchange.tenant_01..03 ~~> exchange.app_17..20 : as
+
+exchange.tenant_04..06 ~~> exchange.app_21..30 : as
+
+exchange.tenant_07..09 ~~> exchange.app_31..40 : as
+exchange.tenant_07..09 ~~> exchange.app_41..60 : as
+
+exchange.tenant_10 ~~> exchange.app_61..75
+exchange.tenant_10 ~~> exchange.app_75..100
+
+
+
+'actor actor
+'agent agent
+'artifact artifact
+'boundary boundary
+'card card
+'cloud cloud
+'component component
+'control control
+'database database
+'entity entity
+'file bucket
+'folder folder
+'frame frame
+'interface  interface
+'node node
+'package package
+'queue queue
+'stack stack
+'rectangle rectangle
+'storage storage
+'usecase usecase
+@enduml

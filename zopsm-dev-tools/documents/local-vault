@@ -1,0 +1,11 @@
+LOCAL VAULT
+vault mount -path=tokens kv
+vault mount -path=db kv
+
+vault write db/redis_zopsm pw=quoh
+
+vault write db/rabbitmq_zopsm username=zopsm
+vault write db/rabbitmq_zopsm password=dombilililerle
+
+vault write db/postgres_zopsm username=zopsm
+vault write db/postgres_zopsm password=dombilililerle

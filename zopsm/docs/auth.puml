@@ -1,0 +1,47 @@
+@startuml
+skinparam ParticipantPadding 30
+skinparam BoxPadding 20
+title Messaging Platform Squence Diagram
+actor "Tenant User" as User
+participant "Tenant Auth" as TenantAuth
+participant "ZopsM Auth Server" as Auth
+participant "SaaS Management" as SaaS
+
+participant LoadBalancer as LB
+collections "Redis" as Redis
+
+== Auth ==
+autonumber
+
+
+User ->  TenantAuth : client sends username and pass to authentication
+
+
+TenantAuth -> SaaS : TenantAuth checks user credentials and ask SaaS\n management to allow user to consume service
+
+rnote over SaaS
+SaaS checks credentials and limits for tenant
+**tenant_id, project_id, user_id and service_token**
+endrnote
+TenantAuth <- SaaS : Response back True / False
+
+
+rnote over Auth
+ - Generate a `refresh_token` for `username`
+ to authenticate user for **service** of specified **application**
+endrnote
+
+Auth ->  TenantAuth : Return Generated Token
+
+TenantAuth -> User : Refresh Token
+
+||45||
+== Refresh Token ==
+
+User -> Auth : REST / Ask for an access token with refresh token
+Auth -> Redis : Generate a token valid for 3 hours
+User <- Auth : Return cached access token
+
+||145||
+== Auth Diagram==
+@enduml

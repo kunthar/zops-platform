@@ -1,0 +1,50 @@
+- hosts: consul_clients
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: ensure python-software-properties is installed
+    apt: pkg={{ item }} state=installed update_cache=yes
+    with_items:
+     - python-software-properties
+     - python-pip
+
+  - name: export LC_ALL, --upgrade setuptools
+    shell: bash export LC_ALL=C; pip install --upgrade setuptools
+
+  - name: pip install python-consul
+    pip:
+     name: python-consul
+     state: latest
+  - name: copy consul-instaler.sh script to nodes /tmp
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/services/consul-installer.sh
+      dest: /tmp/consul-installer.sh
+      mode: 0777
+
+  - name: run /tmp/consul-installer.sh for clients
+    shell: bash /tmp/consul-installer.sh client false 1.2.0
+
+- hosts: consul_clients
+  remote_user: ubuntu
+  gather_facts: yes
+  become: yes
+
+  tasks:
+  - name: change consul-client config
+    template:
+      src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/templates/consul-client.json.j2
+      dest: /etc/consul.d/client.json
+      owner: consul
+      group: consul
+      mode: 0600
+
+  - name: stop consul.service on nodes
+    systemd:
+      state: stopped
+      name: consul
+
+  - name: start consul.service on nodes
+    systemd:
+      state: started
+      name: consul

@@ -1,0 +1,64 @@
+@startuml
+skinparam titleBorderRoundCorner 15
+skinparam titleBorderThickness 1
+title Messaging Platform
+note "REST and Websocket Server \nfor messaging platform\n \n Servers gets messages \nand sends them related queues" as ws1
+
+actor clients
+node "Load Balancer" as lb
+
+cloud ElchiServers {
+  node "tornado_servers x 5"
+}
+ElchiServers .. ws1
+
+
+cloud RabbitCluster {
+  node "rabbit_nodes x 3"
+}
+
+cloud RiakCluster {
+  node "riak_nodes x 3"
+}
+
+cloud RiakWorkers {
+  node riak_worker_01
+}
+
+cloud RedisCluster {
+  node redis01
+  node redis02
+}
+
+
+clients ~~ lb : REST / WS
+lb ~~ ElchiServers : Distrubuted Load
+
+ElchiServers ~~ RabbitCluster
+ElchiServers ~~ RiakCluster
+RabbitCluster ~~ RiakWorkers
+
+ElchiServers ~~ RedisCluster
+RiakWorkers ~~ RedisCluster
+
+
+'agent agent
+'artifact artifact
+'boundary boundary
+'card card
+'cloud cloud
+'component component
+'control control
+'database database
+'entity entity
+'file file
+'folder folder
+'frame frame
+'interface  interface
+'node node
+'package package
+'queue queue
+'rectangle rectangle
+'storage storage
+'usecase usecase
+@enduml

@@ -1,0 +1,56 @@
+<app-header></app-header>
+
+<div class="session-page">
+  <div class="container">
+
+    <any-error [show]="anyError"></any-error>
+
+    <div class="wrapper">
+      <div class="formy">
+        <form role="form" (ngSubmit)="f.form.valid && updateAccount()" #f="ngForm" novalidate>
+
+          <div class="form-group">
+            <label for="organizationName">Organization Name</label>
+            <input type="text" class="form-control" id="organizationName" name="organizationName"
+                   value={{data.organizationName}} [(ngModel)]="accountModel.organizationName"
+                   #organizationName="ngModel" ngModel required/>
+
+            <show-errors [isFormSubmitted]="f.submitted" [control]="organizationName"></show-errors>
+          </div>
+          <div class="form-group">
+            <label for="address">Address</label>
+            <input type="text" class="form-control" id="address" name="address" value={{data.address}}
+                   [(ngModel)]="accountModel.address" #address="ngModel" ngModel required/>
+
+            <show-errors [isFormSubmitted]="f.submitted" [control]="address"></show-errors>
+          </div>
+
+          <div class="form-group">
+            <label for="phone">Phone</label>
+            <input type="text" class="form-control" id="phone" name="phone" value={{data.phone}}
+                   [(ngModel)]="accountModel.phone" #phone="ngModel" ngModel required />
+
+            <show-errors [isFormSubmitted]="f.submitted" [control]="phone"></show-errors>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email address</label>
+            <input type="email" class="form-control" id="email" name="email" value={{data.email}}
+                   [(ngModel)]="accountModel.email" #email="ngModel" email="true" ngModel required/>
+
+            <show-errors [isFormSubmitted]="f.submitted" [control]="email"></show-errors>
+          </div>
+
+          <div class="text-center mt-5">
+            <button [disabled]="loading" type="submit"
+                    class="submit btn-block btn-shadow btn-shadow-info">
+              <i *ngIf="loading" class="fa fa-spinner fa-spin"></i> Update Account
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,208 @@
+- hosts: postgres
+  remote_user: ubuntu
+  gather_facts: yes
+  become: yes
+
+  tasks:
+  - name: add new configuration to "/data/psql/pg_hba.conf"
+    blockinfile:
+      dest: /data/psql/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0           trust
+        host    all             zopsm           159.69.0.0/24       md5
+        host    all             zopsbb          159.69.0.0/24       md5
+      state: present
+    ignore_errors: yes
+
+  - name: add new configuration to "/patroni/psql/pg_hba.conf"
+    blockinfile:
+      dest: /patroni/psql/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0           trust
+      state: present
+    ignore_errors: yes
+
+  - name: reload postgres
+    shell: PGPASSWORD=LuCahN7VpooK8wuziThie0airieG8ede psql -h {{ hostvars[item].ansible_ssh_host }} -U postgres -c  "SELECT pg_reload_conf();"
+    delegate_to: "{{ item }}"
+    with_items:
+      - "{{ groups['postgres'] }}"
+
+  #- name: add new configuration to "/etc/postgresql/10/main/pg_hba.conf"
+  #  blockinfile:
+  #    dest: /etc/postgresql/10/main/pg_hba.conf
+  #    block: |
+  #      host    all             all             0.0.0.0/0           trust
+  #    state: present
+
+#  - name: restart postgresql.service
+#    systemd:
+#      name: postgresql
+#      state: reloaded
+
+  - name: create zopsm db
+    postgresql_db:
+      name: zopsm
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      login_password: LuCahN7VpooK8wuziThie0airieG8ede
+      port: 5432
+      state: present
+
+  - name: create zopsm_replicator user for zopsm db
+    postgresql_user:
+      db: zopsm
+      name: zopsm
+      encrypted: yes
+      password: ZeiXier2aquoh1Cipoo3aiG5go7PhooYPeerach3
+      role_attr_flags: LOGIN
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      login_password: LuCahN7VpooK8wuziThie0airieG8ede
+      port: 5432
+      state: present
+
+  - name: create zopsm_replicator user for zopsm db
+    postgresql_user:
+      db: zopsm
+      name: zopsm_replicator
+      encrypted: yes
+      password: gohw2LohNoeJee1sEexo7ahvQuoh0Aid
+      role_attr_flags: LOGIN,REPLICATION
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      login_password: LuCahN7VpooK8wuziThie0airieG8ede
+      port: 5432
+      state: present
+
+  - name: create zopsm_users schema in zopsm db
+    postgresql_schema:
+     name: zopsm_users
+     database: zopsm
+     owner: zopsm
+     login_host: "{{ ansible_default_ipv4.address }}"
+     login_user: postgres
+     login_password: LuCahN7VpooK8wuziThie0airieG8ede
+     port: 5432
+     state: present
+
+  - name: create zopsm_users schema in zopsm db
+    postgresql_privs:
+      db: zopsm
+      privs: ALL
+      type: database
+      role: zopsm
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      login_password: LuCahN7VpooK8wuziThie0airieG8ede
+      port: 5432
+      state: present
+
+  - name: create zopsbb db
+    postgresql_db:
+      name: zopsbb
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      login_password: LuCahN7VpooK8wuziThie0airieG8ede
+      port: 5432
+      state: present
+#
+  - name: create zopsm user for zopsbb db
+    postgresql_user:
+      db: zopsbb
+      name: bb_zops
+      encrypted: yes
+      password: Eng5rie4Ach5ooghkei9xeeMiWee0Eex
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      login_password: LuCahN7VpooK8wuziThie0airieG8ede
+      port: 5432
+      state: present
+
+#  - name: create vaultadmin user
+#    postgresql_user:
+#      name: vaultadmin
+#      encrypted: yes
+#      password: Vo4cei1aOK5aix5oEiy5YieJ
+#      role_attr_flags: LOGIN,CREATEROLE,NOINHERIT,NOCREATEDB,NOSUPERUSER
+#      login_host: "{{ ansible_default_ipv4.address }}"
+#      login_user: postgres
+#      port: 5432
+#      state: absent
+#
+#  - name: create zopsowner user for zopsbb db
+#    postgresql_user:
+#      db: zopsbb
+#      name: zopsowner
+#      encrypted: yes
+#      password: Ohgh8Lekshe0aeZoEengung4ONgahri3
+#      role_attr_flags: LOGIN,NOCREATEROLE,NOINHERIT,NOCREATEDB,NOSUPERUSER
+#      login_host: "{{ ansible_default_ipv4.address }}"
+#      login_user: postgres
+#      port: 5432
+#      state: absent
+
+
+  - name: create zopsm user for zopsbb db
+    postgresql_user:
+      db: zopsbb
+      name: bb_zops
+      encrypted: yes
+      password: Eng5rie4Ach5ooghkei9xeeMiWee0Eex
+      role_attr_flags: LOGIN
+      priv: ALL
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      login_password: LuCahN7VpooK8wuziThie0airieG8ede
+      port: 5432
+      state: present
+#
+#  - name: remove new configuration to "/etc/postgresql/10/main/pg_hba.conf"
+#    blockinfile:
+#      dest: /etc/postgresql/10/main/pg_hba.conf
+#      block: |
+#        host    all             bb_zops             172.17.0.0/24           md5
+#      state: present
+
+  - name: remove new configuration to "/data/psql/pg_hba.conf"
+    blockinfile:
+      dest: /data/psql/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0           trust
+      state: absent
+    ignore_errors: yes
+  
+  - name: add new configuration to "/patroni/psql/pg_hba.conf"
+    blockinfile:
+      dest: /patroni/psql/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0           trust
+      state: present
+    ignore_errors: yes
+
+#  - name: restart postgresql.service
+#    systemd:
+#      name: postgresql
+#      state: reloaded
+
+#- hosts: postgres-master
+#  remote_user: ubuntu
+#  gather_facts: yes
+#  become: yes
+#
+#  tasks:
+#  - name: create pub on master
+#    shell: psql -d zopsm -h {{ ansible_default_ipv4.address }} -U postgres -w -c "CREATE PUBLICATION zopsm_pub FOR ALL TABLES"
+#
+#- hosts: postgres-slave
+#  remote_user: ubuntu
+#  gather_facts: yes
+#  become: yes
+#
+#  tasks:
+#  - name: create sub on slave
+#    shell: psql -h {{ ansible_default_ipv4.address }} -U postgres -w -c "CREATE SUBSCRIPTION zopsm_sub
+#     CONNECTION 'host={{ hostvars[groups['postgres-master'][0]].ansible_ssh_host }}
+#     dbname=zopsm user=postgres password=eS9tahyafu7ya5BaAiHei4ieohx1Wola port=5432' PUBLICATION zopsm_pub"
+
+#CREATE SUBSCRIPTION zopsm_rep_sub CONNECTION 'host=172.17.0.15  dbname=zopsm user=zopsm_replicator password=gohw2LohNoeJee1sEexo7ahvQuoh0Aid port=5432' PUBLICATION zopsm_rep

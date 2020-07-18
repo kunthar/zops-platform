@@ -1,0 +1,7 @@
+HTTP/1.0 429 Server Error
+Content-Type: text/html
+Retry-After: 3600
+
+<html><body><h1>Too Many Requests</h1>
+<p>Only 100 requests allowed in 1 minute.</p>
+</body></html>

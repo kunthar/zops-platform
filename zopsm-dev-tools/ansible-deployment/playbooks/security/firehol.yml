@@ -1,0 +1,24 @@
+---
+- hosts: all
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: install firehol
+    apt: pkg=firehol state=present
+
+  - name: stop firehol.service on nodes
+    systemd:
+      name: firehol
+      state: stopped
+
+  - name: copy firehol.json to nodes
+    template:
+      src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/templates/firehol.json.j2
+      dest: /etc/firehol/firehol.conf
+
+  - name: run firehol start
+    shell: firehol start
+  
+  - name: run firehol save
+    shell: firehol save

@@ -1,0 +1,154 @@
+.btn-outline-secondary {
+  color: #9c9c9c;
+}
+
+.btn-pill {
+  color: #fff;
+  display: inline-block;  
+  text-decoration: none;
+  font-size: 15px;
+  padding: 10px 27px;
+  border-radius: 55px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  text-align: center;
+
+  &:hover,
+  &:focus {
+    text-decoration: none;
+    color: #fff;
+  }
+
+  &:active {
+    box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  // sizes 
+
+  &.btn-pill-lg {
+    font-size: 16px;
+    padding: 12px 40px;
+  }
+
+  &.btn-pill-sm {
+    font-size: 13px;
+    padding: 6px 21px;
+  }
+
+  // colors
+
+  &.btn-pill-secondary {
+    background: #fff;
+    border: 1px solid #bbbbbb;
+    color: #555;
+    text-shadow: none;
+
+    &:hover {
+      color: #555;
+    }
+  }
+
+  &.btn-pill-primary {
+    background: #57B8F8;
+    border: 1px solid #57B8F8;
+  }
+
+  &.btn-pill-success {
+    background: #7ab55c;
+    border: 1px solid #7ab55c;
+  }
+
+  &.btn-pill-dark {
+    background: #2C394D;
+    border: 1px solid #2C394D;
+  }
+
+  &.btn-pill-info {
+    background: #5bc0de;
+    border: 1px solid #5bc0de;
+  }
+
+  &.btn-pill-warning {
+    background: #f0ad4e;
+    border: 1px solid #f0ad4e;
+  }
+
+  &.btn-pill-danger {
+    background: #d9534f;
+    border: 1px solid #d9534f;
+  }
+}
+
+.btn-shadow {
+  border: 0;
+  font-weight: 600;
+  color: #fff;
+  display: inline-block;
+  box-shadow: rgba(23, 43, 99, 0.24) 0 7px 28px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 13px;
+  padding: 12px 23px;
+  text-shadow: 1px 1px rgba(0, 0, 0, 0.09);
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+
+  @include transition(all .2s);
+
+  &:hover,
+  &:focus {
+    color: #fff;
+    text-decoration: none;
+    box-shadow: rgba(23, 43, 99, 0.3) 0 8px 35px;
+  }
+
+  &:active {
+    box-shadow: rgba(23, 43, 99, 0.24) 0 7px 28px, inset 0 2px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  // sizes
+
+  &.btn-shadow-sm {
+    font-size: 11px;
+    padding: 7px 14px;
+  }
+
+  &.btn-shadow-lg {
+    font-size: 14px;
+    padding: 16px 31px;
+  }
+
+  // colors
+
+  &.btn-shadow-secondary {
+    background: #fff;
+    color: #444;
+    text-shadow: none;
+  }
+
+  &.btn-shadow-primary {
+    background: linear-gradient(#2083fe, #1d7bf0);
+  }
+
+  &.btn-shadow-dark {
+    background: #2C394D;
+  }
+
+  &.btn-shadow-info {
+    background: #42B1E2;
+  }
+
+  &.btn-shadow-warning {
+    background: #E2B477;
+  }
+
+  &.btn-shadow-success {
+    background: #0ad6bc;
+  }
+
+  &.btn-shadow-danger {
+    background: #bd4242;
+  }
+}

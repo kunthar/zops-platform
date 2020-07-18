@@ -1,0 +1,139 @@
+// icon nav
+.iconav {
+  background-color: #fff;
+  border: 1px solid #eee;
+  overflow-y: auto;
+
+  @media(min-width: 768px) {
+    width: 70px;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  .iconav-nav {
+    flex-wrap: nowrap;
+    -ms-flex-wrap: nowrap;
+  }
+
+  .iconav-brand {
+    display: block;
+    padding-top: 27px;
+    padding-bottom: 27px;
+    font-size: 32px;
+    line-height: 1;
+    color: #8691b5;
+    text-align: center;
+    border-bottom: 0;
+    background-color: #f3f4f7;
+  }
+
+  .nav-item {
+    + .nav-item {
+      .nav-link {
+        border-top: 1px solid #eee;
+      }
+    }
+  }
+
+  .nav-slider {
+    @media (max-width: 767px) {
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      white-space: nowrap;
+    }
+  }
+
+  .nav-link {
+    position: relative;
+    text-align: center;
+    font-size: 23px;
+    color: #7d8292;
+
+    &.active {
+      background-color: #f4f4f7;
+      color: #53565f;
+    }
+  }
+
+  .nav-link-label {
+    font-size: 13px;
+    display: block;
+    text-align: center;
+  }
+
+  &.iconav-inverse {
+    background-color: #30343e;
+    border: none;
+
+    .iconav-brand {
+      background-color: #0f1013;
+      color: #6f7890;
+    }
+
+    .nav-item {
+      + .nav-item {
+        .nav-link {
+          border-top: 1px solid #212225;
+        }
+      }
+    }
+
+    .nav-link {
+      color: #fff;
+
+      &.active {
+        background-color: #20232b;
+        color: #889cd0;
+      }
+    }
+  }
+}
+
+// nav bordered
+.nav-bordered {
+  &.nav-vertical {
+    .nav-link.active:after {
+      height: 80%;
+      width: 3px;
+      bottom: inherit;
+      top: 2px;
+      left: -5px;
+      margin: auto 0;
+    }
+    
+    .nav-header {
+      text-transform: uppercase;
+      padding: 0.5em 1em;
+      color: #676767;
+      letter-spacing: .5px;
+      font-size: 90%;
+    }
+
+    li + .nav-header {
+      margin-top: 20px;
+    }
+  }
+
+  .nav-link {
+    &.active {
+      color: #333;
+      position: relative;
+
+      &:after {
+        content: '';
+        position: absolute;
+        height: 3px;
+        background-color: #6f6f6f;
+        width: 75%;
+        bottom: -5px;
+        left: 0;
+        right: 0;
+        margin: 0 auto;
+      }
+    }
+  }
+}

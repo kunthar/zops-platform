@@ -1,0 +1,21 @@
+# systemd unit example
+[Unit]
+Description=Riak Service (De)Registrator for Consul
+BindsTo=riak.service
+After=riak.service
+PartOf=riak.service
+
+[Service]
+ExecStartPre=/bin/bash -c "/bin/systemctl set-environment ipaddress=$(/sbin/ifconfig -a eth0 | grep 'inet addr:' \
+ | /usr/bin/cut -d ':' -f 2 | /usr/bin/cut -d ' ' -f1)"
+ExecStart=/bin/bash -c "/bin/echo \
+'{   \"service\": {     \"name\": \"riak\", \"tags\": [\"riak-service\"],    \"address\": \"${ipaddress}\",    \"port\": 8098,   \
+     \"checks\": [      {        \"http\": \"http://${ipaddress}:8098/ping\",       \
+  \"interval\": \"10s\"      }    ]  }}'  > /etc/consul.d/riak.json"
+ExecStartPost=/bin/bash -c '/usr/local/bin/consul reload'
+RemainAfterExit=true
+ExecStop=/bin/bash -c '/bin/rm /etc/consul.d/riak.json'
+ExecStopPost=/bin/bash -c '/usr/local/bin/consul reload'
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,109 @@
+---
+- hosts: load-balancer
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: Install haproxy
+    apt: pkg=haproxy state=installed
+
+  - name: Download and Extract consul-template to /usr/local/bin
+    unarchive:
+      src: https://releases.hashicorp.com/consul-template/0.19.5/consul-template_0.19.5_linux_amd64.zip
+      dest: /usr/local/bin
+      remote_src: yes
+
+  - name: create /etc/systemd/system/consul-template.service
+    file:
+      dest: /etc/systemd/system/consul-template.service
+      state: touch
+
+  - name: Create consul-template.service under /etc/systemd/sytem
+    blockinfile:
+      dest: /etc/systemd/system/consul-template.service
+      block: |
+        [Unit]
+        Description=Consul Template Daemon
+        Wants=basic.target
+        After=basic.target network.target
+
+        [Service]
+        ExecStart=/usr/local/bin/consul-template -config=/etc/consul-template/
+        SuccessExitStatus=12
+        ExecReload=/bin/kill -SIGHUP $MAINPID
+        ExecStop=/bin/kill -SIGINT $MAINPID
+        KillMode=process
+        Restart=always
+        RestartSec=42s
+        LimitNOFILE=4096
+
+        [Install]
+        WantedBy=multi-user.target
+
+  - name: Create configuration folder of consul-template under /etc
+    file:
+      dest: /etc/consul-template
+      state: directory
+      recurse: yes
+
+  - name: Create templates folder for consul-template under /etc
+    file:
+      dest: /etc/templates
+      state: directory
+      recurse: yes
+
+  - name: Copy default config of consul-template
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/playbooks/haproxy-consul-template/consul-template.hcl
+      dest: /etc/consul-template/
+    notify:
+    - Start consul-template.service
+
+  - name: create /etc/systemd/system/consul-template.service.d if it doesn't exist
+    file:
+      path: /etc/systemd/system/consul-template.service.d
+      state: directory
+
+  - name: create /etc/systemd/system/consul-template.service.d/custom.conf
+    file:
+      path: /etc/systemd/system/consul-template.service.d/custom.conf
+      state: touch
+
+  - name: modify consul-template.service to add CONSUL_HTTP_ADDR environment variable to consul-template user's environment
+    blockinfile:
+      dest: /etc/systemd/system/consul-template.service.d/custom.conf
+      block: |
+        [Service]
+        Environment=CONSUL_HTTP_ADDR={{ ansible_default_ipv4.address }}:8500
+
+  - name: Copy haproxy config of consul-template
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/playbooks/haproxy-consul-template/haproxy.conf.ctmpl
+      dest: /etc/templates
+      remote_src: no
+    notify:
+    - Restart consul-template.service
+
+  - name: Enable consul-template.service
+    systemd:
+      enabled: yes
+      name: consul-template.service
+
+  handlers:
+  - name: Start consul-template.service
+    systemd:
+      state: started
+      daemon_reload: yes
+      name: consul-template.service
+
+  - name: Restart consul-template.service
+    systemd:
+      state: restarted
+      daemon_reload: yes
+      name: consul-template.service
+
+  - name: Restart haproxy.service
+    systemd:
+      state: restarted
+      name: haproxy.service
+

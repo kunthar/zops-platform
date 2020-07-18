@@ -1,0 +1,52 @@
+.container {
+  &:not(.no-override) {
+    @media (min-width: 1200px) {
+      max-width: 1070px;
+    }
+  }
+
+  @media(min-width: 992px) {
+    position: relative;
+  }
+}
+
+a {
+  color: #459CE7;
+  outline: none;
+
+  &:focus, &.active {
+    outline: none;
+  }
+}
+
+// pagination
+
+.page-item {
+  &.active {
+    .page-link {
+      background-color: #4e7396;
+    }
+  }
+}
+
+.page-link {
+  color: #5F8AB0;
+  padding: 0.5rem 0.9rem;
+
+  @include transition(all .1s linear);
+}
+
+
+// table responsive 
+.table-responsive {
+  @media(max-width: 991px) {
+    th,
+    td {
+      white-space: nowrap;
+    }
+  }
+}
+
+.navbar .dropdown-toggle::after {
+  display: none;
+}

@@ -1,0 +1,259 @@
+
+.dropdown {
+  position: relative;
+  display: block;
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown .dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 300px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  font-family: Roboto;
+  font-size: 1rem;
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* Links inside the dropdown */
+.dropdown-content a {
+  color: black;
+  padding: 20px 30px;
+  text-decoration: none;
+  display: block;
+}
+
+.top-header-help{
+  right: 60px;
+  position: absolute;
+  padding-right: 20px;
+  color: #f5f5f5 !important;
+  letter-spacing: 1px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 200;
+  line-height: 0.5;
+}
+.top-header-login{
+  right: 0;
+  position: absolute;
+  padding-right: 20px;
+  color: #f5f5f5 !important;
+  letter-spacing: 1px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 200;
+  line-height: 0.5;
+}
+.top-nav {
+  width: 100%;
+  position: relative;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: justify;
+  padding: 1rem 1rem 1rem;
+  height: 25px;
+}
+.position-top-header{
+  background: #3B4249;
+}
+.dashboard-bar{
+  background: #f5f5f5;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  width: 100%;
+  position: relative;
+  padding: 1rem 1rem 1rem;
+  height: fit-content;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+
+.navbar.bg-transparent {
+  position: relative;
+  background-color: #0B4C5F !important;
+}
+
+.navbar-dark .nav-item .nav-link--rounded {
+  border: 1px solid #ffffff;
+  text-transform: none;
+  border-radius: 10px;
+  margin-left: 20px;
+  margin-top: 22px;
+  padding: 8px 20px 9px;
+  font-family: Roboto;
+  font-size: 0.9rem;
+  font-weight: 300;
+}
+.nav-link{
+  margin-left: 20px;
+  margin-top: 22px;
+  padding: 8px 20px 9px;
+  font-family: Roboto;
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1;
+}
+.navbar-dark .nav-item .nav-link {
+  font-size: 15px;
+}
+
+.dropdown {
+  position: relative;
+  display: block;
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown .dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 300px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  font-family: Roboto;
+  font-size: 1rem;
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* Links inside the dropdown */
+.dropdown-content a {
+  color: black;
+  padding: 20px 30px;
+  text-decoration: none;
+  display: block;
+}
+
+
+.top-header-help{
+  right: 60px;
+  position: absolute;
+  padding-right: 20px;
+  color: #f5f5f5 !important;
+  letter-spacing: 1px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 200;
+  line-height: 0.5;
+}
+.top-header-login{
+  right: 0;
+  position: absolute;
+  padding-right: 20px;
+  color: #f5f5f5 !important;
+  letter-spacing: 1px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 200;
+  line-height: 0.5;
+}
+.top-nav {
+  width: 100%;
+  position: relative;
+  padding: 1rem 1rem 1rem;
+  height: 25px;
+}
+.position-top-header{
+  background: #3B4249;
+}
+
+.navbar.bg-transparent {
+  position: relative;
+  background-color: #0B4C5F !important;
+}
+
+.navbar-dark .nav-item .nav-link--rounded {
+  border: 1px solid #ffffff;
+  text-transform: none;
+  border-radius: 10px;
+  margin-left: 20px;
+  margin-top: 22px;
+  padding: 8px 20px 9px;
+  font-family: Roboto;
+  font-size: 0.9rem;
+  font-weight: 300;
+}
+.nav-link{
+  margin-left: 20px;
+  margin-top: 22px;
+  padding: 8px 20px 9px;
+  font-family: Roboto;
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1;
+}
+.navbar-dark .nav-item .nav-link {
+  font-size: 15px;
+}
+.navbar-dark{
+  background-color: #0B4C5F !important;
+}
+@media only screen and (min-device-width: 1366px) {
+
+
+  /* Change color of dropdown links on hover */
+  .dropdown-content a:hover {
+    background-color: #f1f1f1
+  }
+
+  /* Show the dropdown menu on hover */
+  .dropdown:hover .dropdown-content {
+    display: block;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 300px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+  }
+
+}
+@media only screen and (max-device-width: 1366px) {
+
+  .ion-chevron-down {
+    color: #0B4C5F;
+  }
+
+
+}
+li{
+  margin-right: 10px;
+}
+.btn-outline-dark {
+  color: #0B4C5F;
+  background-color: transparent;
+  background-image: none;
+  border-color: #0B4C5F;
+}
+.btn-dark {
+  color: #fff;
+  background-color: #0B4C5F !important;
+}
+.btn-dark.focus {
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+}
+.navbar-toggler {
+  padding: 0.25rem 0.75rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  float: right;
+}
+.nav-item{
+  margin-top: 10px;
+}
+.btn {
+  padding-top: 0.5rem;
+  padding-right: 1rem;
+  padding-bottom: 0.5rem;
+  padding-left: 0.5rem;
+}
+.service-item{
+  font-family: Roboto;
+  font-size: 14px;
+  letter-spacing: 0px;}

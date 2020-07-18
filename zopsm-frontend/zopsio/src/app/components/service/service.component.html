@@ -1,0 +1,137 @@
+<app-header-dashboard [projectId]="projectId" [serviceId]="serviceId"
+                      (projectsServicesOut)="getProjectsServices($event)"></app-header-dashboard>
+
+<div *ngFor="let a of defaultServiceInfo; index as i" class="session-page">
+  <div *ngIf="a.active && i < 2">
+
+    <div *ngIf="projectsServices[i]">
+      <nav>
+        <div class="nav nav-tabs" id="nav-tab" role="tablist" style="justify-content: flex-end; background-color: #fff">
+          <a class="nav-item nav-link active" id="getting-started-tab" data-toggle="tab" href="#getting-started" role="tab"
+             aria-controls="getting-started" aria-selected="false">Getting Started</a>
+          <a *ngIf="a.codeName == 'push'" class="nav-item nav-link" id="send-message-tab" data-toggle="tab"
+             href="#send-message" role="tab" aria-controls="send-message" aria-selected="false">Send Messages</a>
+          <a class="nav-item nav-link" id="logs-tab" data-toggle="tab" href="#logs" role="tab" aria-controls="logs"
+             aria-selected="false">Logs</a>
+          <a class="nav-item nav-link" id="usage-tab" data-toggle="tab" href="#usage" role="tab" aria-controls="usage"
+             aria-selected="false">Usage</a>
+          <a class="nav-item nav-link" id="settings-tab" data-toggle="tab" href="#settings" role="tab"
+             aria-controls="settings"
+             aria-selected="false">Settings</a>
+          <a class="nav-item nav-link" id="dashboard-tab" data-toggle="tab" href="#dashboard" role="tab"
+             aria-controls="dashboard" aria-selected="true">{{a.codeName.toUpperCase()}} Dashboard</a>
+        </div>
+      </nav>
+      <div class="tab-content" id="nav-tabContent">
+
+        <div class="tab-pane fade show active" id="getting-started" role="tabpanel" aria-labelledby="getting-started-tab">
+          <div *ngIf="a.codeName == 'roc'" class="session-page" style="padding: 2rem;">
+            <div class="container">
+              <div class="started">
+                <div>
+                  <p style="color: #0B4C5F; margin-top: 1rem; margin-left: 2rem"> How It Works</p>
+                </div>
+                <hr>
+                <div class="text-center">...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="send-message" role="tabpanel" aria-labelledby="send-message-tab">...</div>
+
+        <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
+          <div *ngIf="a.codeName == 'roc'" class="session-page" style="padding: 2rem;">
+            <div class="container">
+              <div class="started">
+                <div>
+                  <p style="color: #0B4C5F; margin-top: 1rem; margin-left: 2rem">Logs</p>
+                </div>
+                <hr>
+                <div class="text-center">...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="usage" role="tabpanel" aria-labelledby="usage-tab">
+          <div *ngIf="a.codeName == 'roc'" class="session-page" style="padding: 2rem;">
+            <div class="container">
+              <div class="started">
+                <div>
+                  <p style="color: #0B4C5F; margin-top: 1rem; margin-left: 2rem">{{a.name}} Usage</p>
+                </div>
+                <hr>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">...</div>
+
+        <div class="tab-pane fade" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+          <div class="session-page" style="padding: 2rem;">
+            <div class="container">
+              <div class="card w-50">
+                <div class="card-block" style="padding: 1rem; background-color: #ffffff">
+                  <p class="card-title text-center"><span style="color: #999">Service Info </span></p>
+                  <hr>
+                  <p class="card-text"><span style="color: #999">service name : </span> <span class="project">{{a.name}}</span></p>
+                  <hr>
+                  <p class="card-text"><span style="color: #999">service id : </span> <span class="project">{{data.id}}</span></p>
+                  <p class="card-text"><span style="color: #999">service item limit : </span> <span class="project">{{data.itemLimit}}</span></p>
+                  <p class="card-text"><span style="color: #999">service item used: </span> <span class="project">{{data.itemUsed}}</span></p>
+                  <p class="card-text"><span style="color: #999">service name : </span> <span class="project">{{data.name}}</span></p>
+                  <p class="card-text"><span style="color: #999">service desc : </span> <span class="project">{{data.description}}</span></p>
+                  <p class="card-text"><span style="color: #999">service catalog code : </span> <span class="project">{{data.serviceCatalogCode}}</span></p>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div *ngIf="!projectsServices[i]">
+      <div class="wrapper">
+        <div class="formy">
+          <form role="form" (ngSubmit)="f.form.valid && createService(f)" #f="ngForm" novalidate>
+
+            <h5 style="text-align: center">You didn't add this service to the project. Do you want to add this
+              service?</h5>
+
+            <div class="form-group">
+              <label for="serviceName">Service Name</label>
+              <input type="text" class="form-control" id="serviceName" maxlength="70"
+                     name="serviceName" #serviceName="ngModel" ngModel required/>
+
+              <show-errors [isFormSubmitted]="f.submitted" [control]="serviceName"></show-errors>
+            </div>
+
+            <div class="form-group">
+              <label for="serviceDesc">Service Description</label>
+              <textarea cols="40" rows="4" class="form-control" id="serviceDesc" maxlength="200"
+                        name="serviceDesc" #serviceDesc="ngModel" ngModel required></textarea>
+
+              <show-errors [isFormSubmitted]="f.submitted" [control]="serviceDesc"></show-errors>
+            </div>
+
+            <div class="text-center mt-4">
+              <button [disabled]="loading" type="submit" class="submit btn-block btn-shadow btn-shadow-info">
+                <i *ngIf="loading" class="fa fa-spinner fa-spin"></i> OK
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+    <br>
+  </div>
+
+  <div *ngIf="a.active && i > 1" class="container">
+    <h2 style="text-align: center; padding: 15px">Constructing...</h2>
+  </div>
+</div>

@@ -1,0 +1,19 @@
+- hosts: all
+  remote_user: ubuntu
+  gather_facts: yes
+  become: yes
+
+  tasks:
+  - name: change sshd_config config
+    template:
+      src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/templates/sshd_config.j2
+      dest: /etc/ssh/sshd_config
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: restart sshd.service on nodes
+    systemd:
+      state: restarted
+      daemon_reload: yes
+      name: sshd

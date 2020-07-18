@@ -1,0 +1,99 @@
+<app-header></app-header>
+
+<div class="session-page">
+  <div class="container" style="padding: 20px;">
+<!--
+
+    <div *ngIf="isSuccess" class="alert alert-success alert-dismissible fade show" role="alert">
+      <h4 class="alert-heading">Well done!</h4>
+      <p>Your approval is successful. You are directing to <a href="/signin" class="alert-link">sign in</a> page...</p>
+    </div>
+-->
+
+    <div *ngIf="notExistOrConflict" class="alert alert-danger alert-dismissible fade show" role="alert">
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+      <h4 class="alert-heading">Opps!</h4>
+      <p>It looks like you are already approved your account or did not signup yet. Do you want to
+        <a href="/signin" class="alert-link">sign in</a> or <a href="/signup" class="alert-link">sign up</a>?</p>
+    </div>
+
+    <any-error [show]="anyError"></any-error>
+
+    <div class="wrapper">
+      <div class="formy">
+        <form name="form" (ngSubmit)="ApproveForm.form.valid && startSignUpApprove()" #ApproveForm="ngForm" novalidate>
+          <!--<div class="form-group">
+            <label for="approveCode">*Approve Code</label>
+            <input type="text" class="form-control" name="approveCode" id="approveCode"
+                   [(ngModel)]="approveModel.approveCode" minlength="6"
+                   #approveCode="ngModel" value="approveModel.approveCode" required/>
+
+            <show-errors [isFormSubmitted]="ApproveForm.submitted" [control]="approveCode"></show-errors>
+          </div>-->
+          <div class="form-group">
+            <label for="email">Email address</label>
+            <input type="email" class="form-control" id="email" name="email" [(ngModel)]="approveModel.email"
+                   value="{{approveModel.email}}" ngModel
+                   readonly/>
+          </div>
+
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input type="text" class="form-control" name="firstName" id="firstName"
+                   [(ngModel)]="approveModel.firstName" minlength="2" maxlength="32"
+                   #firstName="ngModel" ngModel required/>
+
+            <show-errors [isFormSubmitted]="ApproveForm.submitted" [control]="firstName"></show-errors>
+          </div>
+
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input type="text" class="form-control" name="lastName" id="lastName"
+                   [(ngModel)]="approveModel.lastName" minlength="2" maxlength="32"
+                   #lastName="ngModel" ngModel required/>
+
+            <show-errors [isFormSubmitted]="ApproveForm.submitted" [control]="lastName"></show-errors>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" class="form-control" name="password" id="password"
+                   [(ngModel)]="approveModel.password" minlength="6" maxlength="128"
+                   #password="ngModel" ngModel required/>
+
+            <show-errors [isFormSubmitted]="ApproveForm.submitted" [control]="password"></show-errors>
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">Confirm Password</label>
+            <input type="password" class="form-control" name="confirmPassword" id="confirmPassword"
+                   [(ngModel)]="approveModel.confirmPassword" maxlength="128"
+                   #confirmPassword="ngModel" ngModel required/>
+
+            <show-errors [isFormSubmitted]="ApproveForm.submitted" [control]="confirmPassword"></show-errors>
+
+            <div *ngIf="approveModel.password != approveModel.confirmPassword" class="help-block">Passwords did
+              not match!
+            </div>
+          </div>
+
+          <re-captcha name="recapt" #recapt="ngModel" ngModel required></re-captcha>
+          <show-errors [isFormSubmitted]="ApproveForm.submitted" [control]="recapt"></show-errors>
+
+          <div class="text-center mt-5">
+            <button [disabled]="loading" type="submit"
+                    class="submit btn-block btn-shadow btn-shadow-info">
+              <i *ngIf="loading" class="fa fa-spinner fa-spin"></i> Approve Account
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<app-footer></app-footer>

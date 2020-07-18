@@ -1,0 +1,81 @@
+VM'de daha hizli gpg key uretmek icin 
+========================
+
+sudo apt-get install rng-tools
+
+Vaultu Consul backendiyle tekrar initialize etmek icin
+Reinit Vault with COnsul backend
+===============================
+
+Command 1: Check Vault values inside Consul
+curl http://127.0.0.1:8500/v1/kv/?recurse | jq .
+ 
+Command 2: Delete all Consul values for /Vault . Which makes Vault clean for next installation
+curl -X DELETE 'http://localhost:8500/v1/kv/vault?recurse'
+
+Security Advise
+=====================
+
+https://www.vaultproject.io/guides/production.html
+
+Vault unseal (Vaultu decrpyt etmek)
+===================================
+
+https://www.gnupg.org/gph/en/manual/x56.html
+
+Vault basladiktan sonra initialize etmemiz lazim. Bize ne kadar gpg keyi verirsek o kadar unseal keyi veriyor.
+
+3 key veriyoruz ve en az 2 tanesini kullanarak vaultu unseal yapiyoruz.
+
+vault init -key-shares=3 -key-threshold=2 -pgp-keys="cem.asc,ariza.asc,gokhan.asc"
+
+Onemli:
+
+Unseal Key 1: wcBMAyBBSzAhDldeAQgAC1K3NiocnAuv5HrDnu09g7m5GM3ISTHxOUpMG/qzqyejF9HT5lMlEodJuDd+8nEMuN9I23/hkPPnxubrKuzl022sTtWGFTcCvi6L9UUOofIauQK8+nHZdaqntVlxmTkRhKYYhqylH5BBo7Qj1r5XOQW6WFmRUDUqFzXtgOziEZPUZN/witQO+IN+/wb+mMPN46Pikcqb1LSwMLyM/h0IthGQ41scvgtUgYy2Ao7qyAb5dmgoMSpF110W6KjF1WJBpKaXJlbx9lDaG/THeXLuG/RJ9TBuCmmOvvppCDe7OmrYP87zMyh8YF2rkDfAob+HT0T9olptkhOyHyN9aLiPjNLgAeQXqxwa+/MYm2sos6A4u9g74e4B4CPgB+EuM+BM4q7mHyHgeebaWkgmGeCZWVW9cm+CSChsKJkPZf0PF01KwHzHJsk0XbqYvxiCyqu1PWb7RZ1hEAc2A/SxTejUb//8pC6VK1q/4ATh46LgT+Rc7a41MNO0j6P4QGwGlrPp4jRQpxvhMGMA
+Unseal Key 2: wcBMA/0EBBURjfqyAQgAiDuggguDSJXnVZikzS7Bs3KbSg8fUPwuChgv14x7t5AxjJnmZp6HagYQRKAcqoMwO7XRv415IS+9jsATTzElKT7xQSDzj2P7n5vDGEgnOW6BeZ5KXg4S0u2WTeOv+QL6vi0+whyT8owVfu5p3hN3DeiLcxCPwFoM1S4YzwOaPktzY7vu7J2aB0mKorNF4Fp9nDemY7LszwjUSAjPHGS2PxR4tSazFd8lPVuaM08hok/WnD0+MQJqFANnTPb8zHxavuAUweJ6nGNG8327PGyk5FeFh0Kcsykuw9a1IhhD30kPvj6fLvBp6MHpXTEWf11b5+b4xM4LESmJmtDi9fFmDdLgAeTIntIyrLO0LRapNL2AB7oJ4ZO/4CTgSOEncOBa4gjZM4fgeuaw7nUr8ZWQVNl1H0qd96DTWy9cs2hVad1UqEtKVH7CgbUz9m9y3ip9+K9oCiSK3JbrycHSbW4aKqJZfDfDyM+B4G/hqkDgQuRnMMAnqq/6o9MVAoVTuzMJ4kq3B0Xhk7QA
+Unseal Key 3: wcBMA5BEcEBB9NSFAQgAq4LTx/qkbUmX0utdrL+8rET6OzPp/mpqAKyiLGgY/0dxXirVVyQM2RfxYSEGTs6AIE4citoaSkidxSjgubjSLaY88I/R0twgVW9ErChnf4ZbTsIDhf/vzwAuKURNlV9O78fmo2Eb4mAj2kT2+eIuFC28e/Tfo+RL8E5nAVZE0UXv8E677n73R0mlv68nv1IlnbDNLN52ci1+o6HTIKZo1yBQGpepB3gQB481FUqBHoLBHO8tZASQuTckgwxQXbkCANOhN1zeIkyspRWQIy56DjPxTzDRe8uLMYUjluX/z0dcHofS2kpTOkrCIXG/opgO3S8pcUXFGNQ+Z1YTBU06QdLgAeRW6N9W800k2nv3sG7mP4fa4WIm4JjgxuFCAOBS4lyZAibgdebNgzYVDZgAbUzrWcP16c3SFmF33m9qtemQ/FU7G1hm8G7mqsVR7IgkRhw7v2AvfQo+jQ3UxwE7FL5TrSTvcMed4P3hqAbg4OQDc3F+/MTb4AFWx1vkVrme4ueK8kjhlVAA
+Initial Root Token: e34e658b-6d79-445d-d76a-8aa407797904
+
+Vault initialized with 3 keys and a key threshold of 2. Please
+securely distribute the above keys. When the vault is re-sealed,
+restarted, or stopped, you must provide at least 2 of these keys
+to unseal it again.
+
+Vault does not store the master key. Without at least 2 keys,
+your vault will remain permanently sealed.
+
+echo "wcBMA/0EAAURjfqyAQgAiDuggguDSJXnVZikzS7Bs3KbSg8fUPwuChgv14x7t5AxjJnmZp6HagYQRKAcqoMwO7XRv415IS+9jsATTzElKT7xQSDzj2P7n5vDGEgnOW6BeZ5KXg4S0u2WTeOv+QL6vi0+whyT8owVfu5p3hN3DeiLcxCPwFoM1S4YzwOaPktzY7vu7J2aB0mKorNF4Fp9nDemY7LszwjUSAjPHGS2PxR4tSazFd8lPVuaM08hok/WnD0+MQJqFANnTPb8zHxavuAUweJ6nGNG8327PGyk5FeFh0Kcsykuw9a1IhhD30kPvj6fLvBp6MHpXTEWf11b5+b4xM4LESmJmtDi9fFmDdLgAeTIntIyrLO0LRapNL2AB7oJ4ZO/4CTgSOEncOBa4gjZM4fgeuaw7nUr8ZWQVNl1H0qd96DTWy9cs2hVad1UqEtKVH7CgbUz9m9y3ip9+K9oCiSK3JbrycHSbW4aKqJZfDfDyM+B4G/hqkDgQuRnMMAnqq/6o9MVAoVTuzMJ4kq3B0Xhk7QA" | base64 -d | gpg -qd
+
+bize decrpyt olmus unseal keyini verir.
+
+Root tokeni ile login oluyoruz
+==============================
+
+vault auth 
+5fe5cf1f-5086-54da-1aw2-77efe2430375
+
+
+Root tokenini kullanmak onerilmeyen birsey, yerine gecici root tokenleri kullanimi oneriliyor.
+
+Vault serverlarindan sadece biri aktif oluyor digerleri standby, standby olanlara request gelirse aktif olana yonlendiriliyor.
+
+
+
+Asagidaki hata, Vault HA modunda Consul backendini kullanip, bagli oldugu consul node'uyla alakali bir sorundan oturu
+ortaya cikmaktadir.
+
+Error checking seal status: Error making API request.
+
+URL: GET http://172.17.0.17:8200/v1/sys/seal-status
+Code: 500. Errors:
+
+* failed to check seal configuration: Unexpected response code: 500
+
+SSL
+=====
+  tls_cert_file       = "/etc/vault.d/ssl/vault.cert"
+  tls_key_file        = "/etc/vault.d/ssl/vault.key"
+  tls_client_ca_file  = "/etc/vault.d/ssl/ca.cert"
+
+VAULT_SKIP_VERIFY=true
+VAULT_ADDR=https://riak-02.vault:8200

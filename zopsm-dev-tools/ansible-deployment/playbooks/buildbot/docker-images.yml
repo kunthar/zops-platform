@@ -1,0 +1,206 @@
+---
+- hosts: workers
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+#  - name: clone credis into /home/ubuntu
+#    git:
+#      repo: 'https://github.com/yihuang/credis.git'
+#      dest: /home/ubuntu/credis
+#      clone: yes
+#
+  - name: copy zopsm-base Dockerfile to home folder
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/containers/zopsm-base/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build zopsm-base image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/zopsm-base
+      api_version: 1.32
+      force: yes
+      pull: no
+      nocache: yes
+      state: present
+
+  - name: copy zmta Dockerfile to home folder
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/containers/zmta/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build zmta image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/zmta
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+  - name: copy mda Dockerfile to home folder
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/containers/mda/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build mda image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/zopsm-mda
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+  - name: copy auth Dockerfile to home folder
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/containers/auth/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build auth image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/auth
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+  - name: copy gw Dockerfile to home folder
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/containers/zgateway/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build gw image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/gw
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+  - name: copy push Dockerfile to home folder
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/containers/push/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build push image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/push
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+
+  - name: copy tests Dockerfile to home folder
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/containers/tests/Dockerfile
+      dest: /home/ubuntu
+    tags:
+      - copy_tests
+
+  - name: copy entrypoint.sh to home folder
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/containers/tests/entrypoint.sh
+      dest: /home/ubuntu
+    tags:
+      - copy_entrypoint.sh
+
+  - name: build tests image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/tests
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+    tags:
+      - build_tests
+
+  - name: copy saas Dockerfile to home folder
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/containers/saas/Dockerfile
+      dest: /home/ubuntu
+    tags:
+      - copy_saas
+
+  - name: build saas image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/saas
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+    tags:
+      - build_saas
+
+  - name: copy docs Dockerfile to home folder
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/containers/docs/Dockerfile
+      dest: /home/ubuntu
+    tags:
+      - copy_docs
+
+  - name: copy rest_api_render.py to home folder
+    copy:
+      src:  /Users/cem/projects/zopsmm/zopsm/docs/rest_api_render.py
+      dest: /home/ubuntu
+    tags:
+      - copy_script
+
+  - name: copy entrypoint.sh to home folder
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/containers/docs/entrypoint.sh
+      dest: /home/ubuntu
+    tags:
+      - copy_entrypoint
+
+  - name: build docs image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/zopsm_docs
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+    tags:
+      - build_docs
+
+  - name: copy Dockerfile to home folder
+    copy:
+      src:  /Users/cem/projects/zopsm-dev-tools/containers/docbox/Dockerfile
+      dest: /home/ubuntu
+
+  - name: copy entrypoint.sh to home folder
+    copy:
+      src:  /Users/cem/projects/zopsm-dev-tools/containers/docbox/entrypoint.sh
+      dest: /home/ubuntu
+
+  - name: build docbox image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/zopsm_docbox
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present
+    tags:
+      - build_docbox
+
+  - name: copy zlogger Dockerfile to home folder
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/containers/logger/Dockerfile
+      dest: /home/ubuntu
+
+  - name: build zlogger image
+    docker_image:
+      path: /home/ubuntu
+      name: zetaops/zlogger
+      api_version: 1.32
+      force: yes
+      pull: no
+      state: present

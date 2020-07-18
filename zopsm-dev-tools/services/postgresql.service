@@ -1,0 +1,19 @@
+# /lib/systemd/system/postgresql.service
+# systemd service for managing all PostgreSQL clusters on the system. This
+# service is actually a systemd target, but we are using a service since
+# targets cannot be reloaded.
+
+[Unit]
+Description=PostgreSQL RDBMS
+Before=postgresql-consul.service
+Requires=postgresql-consul.service
+After=consul.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/true
+ExecReload=/bin/true
+RemainAfterExit=on
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,21 @@
+--- c.py    2018-07-03 15:15:34.000000000 +0300
++++ b.py    2018-07-03 15:20:49.000000000 +0300
+@@ -53,7 +53,7 @@
+         """
+         Run *script* every *interval* (e.g. "10s") to peform health check
+         """
+-        return {'args': script.split(), 'interval': interval}
++        return {'script': script, 'interval': interval}
+ 
+     @classmethod
+     def http(klass, url, interval, timeout=None, deregister=None, header=None):
+@@ -111,7 +111,7 @@
+         ret = {
+             'docker_container_id': container_id,
+             'shell': shell,
+-            'args': script.split(),
++            'script': script,
+             'interval': interval
+         }
+         if deregister:
+

@@ -1,0 +1,45 @@
+- hosts: worker-01
+  become: yes
+  remote_user: ubuntu
+
+  tasks:
+  - name:  create /home/ubuntu/sighups/
+    file:
+      path: /home/ubuntu/sighups
+      state: directory
+      owner: consul
+      group: consul
+  - name: copy mda
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/sighups/mda_sighup.py
+      dest: /home/ubuntu/sighups/mda_sighup.py
+      owner: consul
+      group: consul
+
+  - name: copy gw
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/sighups/gw_sighup.py
+      dest: /home/ubuntu/sighups/gw_sighup.py
+      owner: consul
+      group: consul
+
+  - name: copy auth
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/sighups/auth_sighup.py
+      dest: /home/ubuntu/sighups/auth_sighup.py
+      owner: consul
+      group: consul
+
+  - name: copy push
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/sighups/push_sighup.py
+      dest: /home/ubuntu/sighups/push_sighup.py
+      owner: consul
+      group: consul
+
+  - name: copy saas
+    copy:
+      src: /Users/cem/projects/zopsm-dev-tools/sighups/saas_sighup.py
+      dest: /home/ubuntu/sighups/saas_sighup.py
+      owner: consul
+      group: consul

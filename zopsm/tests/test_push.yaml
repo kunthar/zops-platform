@@ -1,0 +1,1935 @@
+---
+- config:
+    - testset: "Push Actions"
+    - generators:
+      - 'account_email_handler': {type: 'random_text', max_length: 10}
+      - 'admin_email_handler': {type: 'random_text', max_length: 10}
+      - 'consumer_email_handler1': {type: 'random_text', max_length: 10}
+      - 'consumer_email_handler2': {type: 'random_text', max_length: 10}
+      - 'consumer_email_handler3': {type: 'random_text', max_length: 10}
+      - 'consumer_email_handler4': {type: 'random_text', max_length: 10}
+      - 'invalid_token': {type: 'random_text', max_length: 20}
+      - 'invalid_client_id': {type: 'random_int', max_length: 20}
+    - variable_binds:
+      - saas_uri_prefix: '/api/v1'
+      - push_uri_prefix: '/v1/push'
+      - mailgun_token: "Basic YXBpOmtleS00YWRkYTA2ZjI3ZjE1MGUwZDkyMDYzMmNkYmU1YjI3NQ=="
+#      - saas_host: 'http://localhost:8000'
+#      - push_host: 'http://localhost:9500'
+#      - auth_host_uri_prefix: 'http://localhost:12345/v1/auth/token'
+
+
+                                  ## Saas Project Creation
+                                  ## Saas Project Creation
+                                  ## Saas Project Creation
+                                  ## Saas Project Creation
+
+- test:
+    - name: "Login as Tenant Manager"
+    - url: {template: "$saas_host/$saas_uri_prefix/session"}
+    - method: 'POST'
+    - body: {template: '{"email":"$tenant_manager_email", "password": "$manager_password"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'manager_token': {jsonpath_mini: 'content.token'}
+
+- test:
+    - generator_binds: {admin_email_handler: admin_email_handler}
+    - name: "Register New Account"
+    - url: {template: "$saas_host$saas_uri_prefix/register"}
+    - method: 'POST'
+    - body: {template: '{
+      "organizationName": "Example Organization",
+      "address": "Example Address, A Street No 5.",
+      "phone": "12345678901",
+      "email": "zops_test_$admin_email_handler@example.com"
+      }'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'registration_id': {jsonpath_mini: 'content.registrationId'}
+        - 'email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - name: "Email-Tracking with Manager Role"
+    - url: {template: "$saas_host/$saas_uri_prefix/email-tracking?receiver=$email"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'mailgun_mail_id1': {jsonpath_mini: 'content.0.providerMailId'}
+
+- test:
+    - delay: 6
+    - name: "MailGun Events"
+    - url: {template: "https://api.mailgun.net/v3/mg.zops.io/events?message-id=$mailgun_mail_id1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": $mailgun_token}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'mail_url': {jsonpath_mini: 'items.0.storage.url'}
+
+- test:
+    - name: "Take Approve Code inside Mailgun Header"
+    - url: {template: "$mail_url"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": $mailgun_token}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'approve_code': {jsonpath_mini: 'X-Approve-Code'}
+
+- test:
+    - name: "Approve Account"
+    - url: {template: "$saas_host$saas_uri_prefix/register/$registration_id/"}
+    - method: 'PUT'
+    - body: {template: '{"approveCode": "$approve_code", "email": "$email", "password": "123", "firstName": "adminfirst", "lastName": "adminlast"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'user_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - name: "Login as Admin User"
+    - url: {template: "$saas_host$saas_uri_prefix/session"}
+    - method: 'POST'
+    - body: {template: '{"email":"$user_email", "password": "123"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'saas_admin_token': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create a new project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"name": "Aka Project", "description": "Super top secret project!"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'project_token': {jsonpath_mini: 'content.token'}
+        - 'project_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Update Project Api keys"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/api"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{"fcmApiKeys": "asdasdasdas123123", "fcmProjectNumber": "12312312qweqweq213", "apnsCert": "WRzIHRoZSBzaG9ydCB2ZWhlbWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=" }'}
+    - expected_status: [202]
+
+# Create consumers
+- test:
+    - generator_binds: {consumer_email_handler1: consumer_email_handler1}
+    - name: "Create a new consumer - 1"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer1_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - generator_binds: {consumer_email_handler2: consumer_email_handler2}
+    - name: "Create a new consumer - 2"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer2_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - generator_binds: {consumer_email_handler3: consumer_email_handler3}
+    - name: "Create a new consumer - 3"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer3_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - generator_binds: {consumer_email_handler4: consumer_email_handler4}
+    - name: "Create a new consumer - 4"
+    - url: {template: "$saas_host$saas_uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer4_id': {jsonpath_mini: 'content.id'}
+
+
+# Attach Consumer to the Project
+- test:
+    - name: "Attach consumer 1 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 2 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer2_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 3 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer3_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 4 to project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer4_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+
+
+# Attach Service to Project
+- test:
+    - name: "Attach service project"
+    - url: {template: "$saas_host$saas_uri_prefix/projects/$project_id/services"}
+    - method: 'POST'
+    - body: {template: '{"name":"message", "description":"fff", "serviceCatalogCode":"push"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'service_catalog_code': {jsonpath_mini: 'content.serviceCatalogCode'}
+
+
+# Create Refresh Tokens
+- test:
+    - name: "Create Push Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_1': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create Push Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer2_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_2': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create Push Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer3_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_3': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Create Push Service Token"
+    - url: {template: "$saas_host$saas_uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer4_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token_4': {jsonpath_mini: 'content.token'}
+
+################
+
+                                              ##### Client Test #####
+                                              ##### Client Test #####
+                                              ##### Client Test #####
+                                              ##### Client Test #####
+
+- test:
+    - name: "REGISTER NEW CLIENT 1 TARGET 1-- "
+    - url: {template: "$push_host$push_uri_prefix/clients"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"token": "11cef7469f72d445dad43f3c275e4323f",
+                         "appVersion": "1.0.0",
+                         "deviceType": "android",
+                         "language": "English",
+                         "country": "Turkey",
+                         "osVersion": "4.4.2"}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'client_id': {jsonpath_mini: 'content.clientId'}
+
+- test:
+    - name: "REGISTER NEW CLIENT 2 TARGET 1-- "
+    - url: {template: "$push_host$push_uri_prefix/clients"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"token": "21cef7469f72d445dad43f3c275e4323f",
+                         "appVersion": "1.0.0",
+                         "deviceType": "ios",
+                         "language": "English",
+                         "country": "Turkey",
+                         "osVersion": "4.4.2"}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'client_id2': {jsonpath_mini: 'content.clientId'}
+
+- test:
+    - name: "REGISTER NEW CLIENT 3 TARGET 1-- "
+    - url: {template: "$push_host$push_uri_prefix/clients"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"token": "31cef7469f72d445dad43f3c275e4323f",
+                         "appVersion": "1.0.0",
+                         "deviceType": "android",
+                         "language": "English",
+                         "country": "Turkey",
+                         "osVersion": "4.4.2"}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'client_id3': {jsonpath_mini: 'content.clientId'}
+
+- test:
+    - name: "REGISTER NEW CLIENT 4 TARGET 1-- "
+    - url: {template: "$push_host$push_uri_prefix/clients"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"token": "41cef7469f72d445dad43f3c275e4323f",
+                         "appVersion": "1.0.0",
+                         "deviceType": "android",
+                         "language": "English",
+                         "country": "Turkey",
+                         "osVersion": "4.8.2"}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'client_id4': {jsonpath_mini: 'content.clientId'}
+
+- test:
+    - name: "REGISTER NEW CLIENT 5 FOR TARGET 1-- "
+    - url: {template: "$push_host$push_uri_prefix/clients"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"token": "51cef7469f72d445dad43f3c275e4323f",
+                         "appVersion": "1.0.0",
+                         "deviceType": "ios",
+                         "language": "English",
+                         "country": "Turkey",
+                         "osVersion": "6.2.5"}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'client_id5': {jsonpath_mini: 'content.clientId'}
+
+- test:
+    - name: "REGISTER NEW CLIENT 6 FOR TARGET 2 -- "
+    - url: {template: "$push_host$push_uri_prefix/clients"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_2"}}
+    - body: {template: '{"token": "51cef7469f72d445dad43f3c275e4323f",
+                         "appVersion": "1.0.0",
+                         "deviceType": "android",
+                         "language": "English",
+                         "country": "Turkey",
+                         "osVersion": "3.2.5"}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'client_id6': {jsonpath_mini: 'content.clientId'}
+
+- test:
+    - name: "REGISTER NEW CLIENT 7 FOR TARGET 3 -- "
+    - url: {template: "$push_host$push_uri_prefix/clients"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_3"}}
+    - body: {template: '{"token": "53cef7469f72d445dad43f3c275e4323f",
+                         "appVersion": "1.0.0",
+                         "deviceType": "ios",
+                         "language": "English",
+                         "country": "Turkey",
+                         "osVersion": "2.2.5"}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'client_id7': {jsonpath_mini: 'content.clientId'}
+
+- test:
+    - name: "REGISTER NEW CLIENT 8 FOR TARGET 4 -- "
+    - url: {template: "$push_host$push_uri_prefix/clients"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_4"}}
+    - body: {template: '{"token": "52cef7469f72d445dad43f3c275e4323f",
+                         "appVersion": "1.0.0",
+                         "deviceType": "ios",
+                         "language": "English",
+                         "country": "Turkey",
+                         "osVersion": "1.2.5"}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'client_id8': {jsonpath_mini: 'content.clientId'}
+
+- test:
+    - name: "RETRIEVE CLIENT -- client_id "
+    - url: {template: "$push_host$push_uri_prefix/clients/$client_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_id"}}
+
+- test:
+    - generator_binds: {invalid_token: invalid_token}
+    - name: "ERROR RETRIEVE CLIENT -- invalid_token "
+    - url: {template: "$push_host$push_uri_prefix/clients/$client_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$invalid_token"}}
+    - expected_status: [401]
+
+- test:
+    - name: "UPDATE CLIENT 1 -- client_id "
+    - url: {template: "$push_host$push_uri_prefix/clients/$client_id"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"token": "1cef7469f72d445dad43f3c275e4323f",
+                         "appVersion": "1.2.3",
+                         "deviceType": "android",
+                         "language": "English",
+                         "country": "Turkey",
+                         "osVersion": "4.4.2"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE CLIENT -- client_id "
+    - url: {template: "$push_host$push_uri_prefix/clients/$client_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_id"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "1.2.3"}}
+
+- test:
+    - name: "RETRIEVE CLIENT 2 -- client_id "
+    - url: {template: "$push_host$push_uri_prefix/clients/$client_id2"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_id2"}}
+
+- test:
+    - generator_binds: {invalid_token: invalid_token}
+    - name: "UPDATE CLIENT 1 -- client_id, invalid_token  "
+    - url: {template: "$push_host$push_uri_prefix/clients/$client_id"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $invalid_token"}}
+    - body: {template: '{"token": "1cef7469f72d445dad43f3c275e4323f",
+                         "appVersion": "1.0.0",
+                         "deviceType": "android",
+                         "language": "English",
+                         "country": "Turkey",
+                         "osVersion": "4.4.2"}'}
+    - expected_status: [401]
+
+- test:
+    - name: "DELETE CLIENT 1 -- client_id "
+    - url: {template: "$push_host$push_uri_prefix/clients/$client_id"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE DELETED CLIENT -- client_id "
+    - url: {template: "$push_host$push_uri_prefix/clients/$client_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [404]
+
+- test:
+    - name: "LIST CLIENTS BY USER -- "
+    - url: {template: "$push_host$push_uri_prefix/clients"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_id2"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_id3"}}
+
+- test:
+    - name: "REGISTER CLIENT 1 -- "
+    - url: {template: "$push_host$push_uri_prefix/clients"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"token": "11cef7469f72d445dad43f3c275e4323f",
+                         "appVersion": "1.0.0",
+                         "deviceType": "android",
+                         "language": "English",
+                         "country": "Turkey",
+                         "osVersion": "4.4.2"}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'client_id': {jsonpath_mini: 'content.clientId'}
+
+
+                                                  ##### Tags Test #####
+                                                  ##### Tags Test #####
+                                                  ##### Tags Test #####
+                                                  ##### Tags Test #####
+### STRING TAG CREATION ###
+- test:
+    - name: "CREATE KEY STRING TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "stringkeytag",
+                         "tagType": "key",
+                         "valueType": "str" }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'key_tag_name_str': {jsonpath_mini: 'content.name'}
+
+- test:
+    - name: "CREATE KEY-VALUE STRING TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "stringkeyvaluetag",
+                         "tagType": "key-value",
+                         "valueType": "str" }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'key_value_tag_name_str': {jsonpath_mini: 'content.name'}
+
+- test:
+    - name: "CREATE MULTI STRING TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "stringmultitag",
+                         "tagType": "multi",
+                         "valueType": "str" }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'multi_tag_name_str2': {jsonpath_mini: 'content.name'}
+
+- test:
+    - name: "CREATE MULTI STRING TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "device",
+                         "tagType": "multi",
+                         "valueType": "str" }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'device_tag': {jsonpath_mini: 'content.name'}
+
+
+- test:
+    - name: "CREATE MULTI STRING TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "stringmultinewspaper",
+                         "tagType": "multi",
+                         "valueType": "str" }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'multi_tag_name_str': {jsonpath_mini: 'content.name'}
+
+### FLOAT TAG CREATION ###
+- test:
+    - name: "CREATE MULTI FLOAT TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "floatmultitag",
+                         "tagType": "multi",
+                         "valueType": "float" }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'multi_tag_name_float': {jsonpath_mini: 'content.name'}
+
+- test:
+    - name: "CREATE KEY FLOAT TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "floatkeytag",
+                         "tagType": "key",
+                         "valueType": "float" }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'key_tag_name_float': {jsonpath_mini: 'content.name'}
+
+- test:
+    - name: "CREATE KEY-VALUE FLOAT TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "floatkeyvaluetag",
+                         "tagType": "key-value",
+                         "valueType": "float" }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'key_value_tag_name_float': {jsonpath_mini: 'content.name'}
+
+### INTEGER TAG CREATION ###
+- test:
+    - name: "CREATE MULTI INTEGER TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "integermultitag",
+                         "tagType": "multi",
+                         "valueType": "int" }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'multi_tag_name_integer': {jsonpath_mini: 'content.name'}
+
+- test:
+    - name: "CREATE KEY INTEGER TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "integerkeytag",
+                         "tagType": "key",
+                         "valueType": "int" }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'key_tag_name_integer': {jsonpath_mini: 'content.name'}
+
+- test:
+    - name: "CREATE KEY-VALUE INTEGER TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "integerkeyvaluetag",
+                         "tagType": "key-value",
+                         "valueType": "int" }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'key_value_tag_name_integer': {jsonpath_mini: 'content.name'}
+
+- test:
+    - name: "CREATE INVALID TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "invalidtagtype",
+                         "tagType": "invalidtag",
+                         "valueType": "str" }'}
+    - expected_status: [400]
+
+### NONE TAG CREATION ###
+- test:
+    - name: "CREATE MULTI NONE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "nonemultitag",
+                         "tagType": "multi",
+                         "valueType": null }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'multi_tag_name_none': {jsonpath_mini: 'content.name'}
+
+- test:
+    - name: "CREATE KEY NONE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "nonekeytag",
+                         "tagType": "key",
+                         "valueType": null }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'key_tag_name_none': {jsonpath_mini: 'content.name'}
+
+- test:
+    - name: "CREATE KEY-VALUE NONE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "nonekeyvaluetag",
+                         "tagType": "key-value",
+                         "valueType": null }'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'key_value_tag_name_none': {jsonpath_mini: 'content.name'}
+
+
+###  TAG RETRIEVE DELETE AND LIST  ###
+- test:
+    - name: "LIST TAGS -- page_size, "
+    - url: {template: "$push_host$push_uri_prefix/tags?page_size=6"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - extract_binds:
+      - 'tag_continuation_1': {jsonpath_mini: 'content.continuation'}
+
+- test:
+    - name: "LIST TAGS -- page_size, continuation "
+    - url: {template: "$push_host$push_uri_prefix/tags?page_size=10&continuation=$tag_continuation_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "\"continuation\": null"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$tag_continuation_1"}}
+
+- test:
+    - name: "LIST TAGS  "
+    - url: {template: "$push_host$push_uri_prefix/tags?page_size=20"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$multi_tag_name_float"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$key_value_tag_name_float"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$multi_tag_name_str"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$multi_tag_name_integer"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$multi_tag_name_none"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$key_value_tag_name_none"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "\"continuation\": null"}}
+
+- test:
+    - name: "RETRIEVE TAG -- tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/$multi_tag_name_str2"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$multi_tag_name_str2"}}
+
+- test:
+    - name: "DELETE TAG -- tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/$multi_tag_name_str2"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE DELETED TAG -- tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/$multi_tag_name_str2"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [404]
+###########################################################################################################
+- test:
+    - name: "RETRIEVE TAG -- tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/$key_value_tag_name_none"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$key_value_tag_name_none"}}
+
+- test:
+    - name: "DELETE TAG -- tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/$key_value_tag_name_none"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE DELETED TAG -- tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/$key_value_tag_name_none"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [404]
+
+- test:
+    - name: "RETRIEVE TAG -- tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/$multi_tag_name_none"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$multi_tag_name_none"}}
+
+- test:
+    - name: "DELETE TAG -- tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/$multi_tag_name_none"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE DELETED TAG -- tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/$multi_tag_name_none"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [404]
+
+###########################################################################################################
+                                            ##### Client Tags Test #####
+                                            ##### Client Tags Test #####
+                                            ##### Client Tags Test #####
+                                            ##### Client Tags Test #####
+
+
+                                              #####################
+                                              # CLIENT 1 ADD TEST #
+                                              # CLIENT 1 ADD TEST #
+                                              # CLIENT 1 ADD TEST #
+                                              #####################
+- test:
+    - name: "CLIENT 1 ADD FLOAT MULTI TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id",
+                         "key": "$multi_tag_name_float",
+                         "valueWrite": "1.2"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 1 ADDS FLOAT KEY-VALUE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id",
+                         "key": "$key_value_tag_name_float",
+                         "valueWrite": "19.45"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 1 ADD STRING KEY-VALUE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id",
+                         "key": "$key_value_tag_name_str",
+                         "valueWrite": "keyvaluetagvalue"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT ADD STRING MULTI TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id",
+                         "key": "$multi_tag_name_str",
+                         "valueWrite": "Sabah"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT ADD STRING MULTI TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id",
+                         "key": "$multi_tag_name_str",
+                         "valueWrite": "cumhuriyet"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT ADD DEVICE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id",
+                         "key": "$device_tag",
+                         "valueWrite": "android"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT ADD STRING KEY TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id",
+                         "key": "$key_tag_name_str",
+                         "valueWrite": "null"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 1 ADD INTEGER MULTI TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id",
+                         "key": "$multi_tag_name_integer",
+                         "valueWrite": "5"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 1 ADD INTEGER MULTI TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id",
+                         "key": "$multi_tag_name_integer",
+                         "valueWrite": "25"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 1 ADD INTEGER KEY-VALUE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id",
+                         "key": "$key_value_tag_name_integer",
+                         "valueWrite": "10"}'}
+    - expected_status: [202]
+
+###########################################################################################################
+- test:
+    - name: "CLIENT 1 ADD NONE KEY TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id",
+                         "key": "$key_tag_name_none",
+                         "valueWrite": null}'}
+    - expected_status: [202]
+
+                                        # CLIENT 1 ADD #
+                                        # CLIENT 1 ADD #
+                                        # CLIENT 1 ADD #
+                                        ################
+
+########################################################################################################################
+########################################################################################################################
+
+                                        ####################
+                                        # CLIENT 2,3,4 ADD #
+                                        # CLIENT 2,3,4 ADD #
+                                        # CLIENT 2,3,4 ADD #
+
+- test:
+    - name: "CLIENT 2 ADD DEVICE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id2",
+                         "key": "$device_tag",
+                         "valueWrite": "ios"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 2 ADD STRING MULTI TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id2",
+                         "key": "$multi_tag_name_str",
+                         "valueWrite": "Milliyet"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 3 ADD DEVICE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id3",
+                         "key": "$device_tag",
+                         "valueWrite": "android"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 3 ADD STRING MULTI TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id3",
+                         "key": "$multi_tag_name_str",
+                         "valueWrite": "Milliyet"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 4 ADD STRING MULTI TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id4",
+                         "key": "$multi_tag_name_str",
+                         "valueWrite": "Milliyet"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 4 ADD DEVICE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id4",
+                         "key": "$device_tag",
+                         "valueWrite": "android"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 5 ADD DEVICE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/client"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id5",
+                         "key": "$device_tag",
+                         "valueWrite": "ios"}'}
+    - expected_status: [202]
+
+                                        # CLIENT 2,3,4 ADD #
+                                        # CLIENT 2,3,4 ADD #
+                                        # CLIENT 2,3,4 ADD #
+                                        ####################
+
+########################################################################################################################
+########################################################################################################################
+
+                                      ################################
+                                      # CLIENT 1 RETRIEVE AND DELETE #
+                                      # CLIENT 1 RETRIEVE AND DELETE #
+                                      # CLIENT 1 RETRIEVE AND DELETE #
+
+- test:
+    - name: "CLIENT 1 RETRIEVE NONE MULTI TAG -- client_id, tag_name."
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$key_tag_name_none"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+
+- test:
+    - name: "CLIENT 1 RETRIEVE STRING MULTI TAG -- client_id, tag_name."
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$multi_tag_name_str"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+
+- test:
+    - name: "CLIENT 1 RETRIEVE FLOAT MULTI TAG -- client_id and tag_name."
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$multi_tag_name_float"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+
+- test:
+    - name: "CLIENT 1 RETRIEVE NONE KEY TAG -- client_id and tag_name."
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$key_tag_name_none"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+
+- test:
+    - name: "CLIENT 1 LIST ALL TAG -- client_id"
+    - url: {template: "$push_host$push_uri_prefix/tags/client?clientParam=$client_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+
+- test:
+    - name: "CLIENT 1 DELETE KEY NONE TAG -- client_id, tag_name"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$key_tag_name_none"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 1 DELETE KEY-VALUE INTEGER TAG -- client_id, tag_name"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$key_value_tag_name_integer"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "CLIENT 1 DELETE MULTI FLOAT TAG -- client_id, tag_name"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$multi_tag_name_float"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE DELETED MULTI FLOAT TAG -- client_id, tag_name"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$multi_tag_name_float"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "CLIENT 1 DELETE MULTI INTEGER WITH VALUE -- client_id, tag_name, tag_value"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$multi_tag_name_integer&tagValue=25"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+
+- test:
+    - name: "CLIENT 1 DELETE MULTI INTEGER TAG -- client_id, tag_name"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$multi_tag_name_integer"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE DELETED MULTI INTEGER TAG -- client_id, tag_name"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$multi_tag_name_integer"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "CLIENT 1 DELETE KEY-VALUE FLOAT TAG -- client_id, tag_name"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$key_value_tag_name_float"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE DELETED KEY-VALUE FLOAT TAG -- client_id, tag_name"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$key_value_tag_name_float"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "CLIENT 1 DELETE MULTI NONE WITH VALUE -- client_id, tag_name, tag_value"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$multi_tag_name_none&tagValue=null"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+
+- test:
+    - name: "CLIENT 1 DELETE MULTI NONE TAG -- client_id, tag_name"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$multi_tag_name_none"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE DELETED MULTI NONE TAG -- client_id, tag_name"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id?tagKey=$multi_tag_name_none"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [400]
+
+
+#todo not contain
+- test:
+    - name: "CLIENT 1 LIST ALL TAG -- client_id"
+    - url: {template: "$push_host$push_uri_prefix/tags/client?clientParam=$client_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+
+- test:
+    - name: "CLIENT 1 DELETE ALL TAGS -- client_id"
+    - url: {template: "$push_host$push_uri_prefix/tags/client/$client_id"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+
+                                          # CLIENT 1 RETRIEVE AND DELETE #
+                                          # CLIENT 1 RETRIEVE AND DELETE #
+                                          # CLIENT 1 RETRIEVE AND DELETE #
+                                          ################################
+
+########################################################################################################################
+########################################################################################################################
+
+                                              ##### Segment Test #####
+                                              ##### Segment Test #####
+                                              ##### Segment Test #####
+                                              ##### Segment Test #####
+
+# todo Multiple segment test must be added. PATCH, create_bulk
+- test:
+    - name: "CREATE SEGMENT 1  FOR CLIENT-- "
+    - url: {template: "$push_host$push_uri_prefix/segments"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "Having android device and reading milliyet",
+                         "residents": {
+                             "sets": {
+                                 "a": {"key": "$multi_tag_name_str", "relation": "=", "value": "Milliyet", "intention": "client"},
+                                 "b": {"key": "$device_tag", "relation": "=", "value": "android", "intention": "client"}
+                             },
+                             "expression": "a n b"
+                         }}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'client_segment_id_1': {jsonpath_mini: 'content.segmentId'}
+
+- test:
+    - name: "CREATE SEGMENT 2 FOR CLIENT-- "
+    - url: {template: "$push_host$push_uri_prefix/segments"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "Having android device and integer tag bigger than 25",
+                         "residents": {
+                             "sets": {
+                                 "a": {"key": "$multi_tag_name_integer", "relation": ">", "value": "25", "intention": "client"},
+                                 "b": {"key": "$device_tag", "relation": "=", "value": "android", "intention": "client"}
+                             },
+                             "expression": "a n b"
+                         }}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'client_segment_id_2': {jsonpath_mini: 'content.segmentId'}
+
+- test:
+    - name: "CREATE SEGMENT 3 FOR CLIENT-- "
+    - url: {template: "$push_host$push_uri_prefix/segments"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "Having ios device or reading milliyet",
+                         "residents": {
+                             "sets": {
+                                 "a": {"key": "$multi_tag_name_str", "relation": "=", "value": "Milliyet", "intention": "client"},
+                                 "b": {"key": "$device_tag", "relation": "=", "value": "ios", "intention": "client"}
+                             },
+                             "expression": "a U b"
+                         }}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'client_segment_id_3': {jsonpath_mini: 'content.segmentId'}
+
+- test:
+    - name: "CREATE SEGMENT 4 FOR TARGET-- "
+    - url: {template: "$push_host$push_uri_prefix/segments"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "Having ios device or reading milliyet",
+                         "residents": {
+                             "sets": {
+                                 "a": {"key": "$multi_tag_name_str", "relation": "=", "value": "Milliyet", "intention": "target"},
+                                 "b": {"key": "$device_tag", "relation": "=", "value": "ios", "intention": "target"}
+                             },
+                             "expression": "a U b"
+                         }}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'target_segment_id_1': {jsonpath_mini: 'content.segmentId'}
+
+- test:
+    - name: "LIST SEGMENT -- page_size "
+    - url: {template: "$push_host$push_uri_prefix/segments?page_size=2"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - extract_binds:
+      - 'segment_continuation_1': {jsonpath_mini: 'content.continuation'}
+
+- test:
+    - name: "LIST SEGMENT -- page_size, continuation "
+    - url: {template: "$push_host$push_uri_prefix/segments?page_size=6&continuation=$segment_continuation_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "\"continuation\": null"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$segment_continuation_1"}}
+
+- test:
+    - name: "LIST SEGMENT "
+    - url: {template: "$push_host$push_uri_prefix/segments"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_segment_id_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_segment_id_2"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_segment_id_3"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$target_segment_id_1"}}
+
+- test:
+    - name: "RETRIEVE SEGMENT -- segment_id "
+    - url: {template: "$push_host$push_uri_prefix/segments/$client_segment_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_segment_id_1"}}
+
+- test:
+    - name: "UPDATE SEGMENT -- segment_id "
+    - url: {template: "$push_host$push_uri_prefix/segments/$client_segment_id_1"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"name": "android-milliyet",
+                         "residents": {
+                             "sets": {
+                                 "a": {"key": "$multi_tag_name_str", "relation": "=", "value": "Milliyet", "intention": "client"},
+                                 "b": {"key": "$device_tag", "relation": "=", "value": "android", "intention": "client"}
+                             },
+                             "expression": "a n b"
+                         }}'}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE SEGMENT -- segment_id "
+    - url: {template: "$push_host$push_uri_prefix/segments/$client_segment_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_segment_id_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "android-milliyet"}}
+
+- test:
+    - name: "DELETE SEGMENT Deletes the Segment with Given Id"
+    - url: {template: "$push_host$push_uri_prefix/segments/$client_segment_id_2"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE DELETED SEGMENT -- segment_id "
+    - url: {template: "$push_host$push_uri_prefix/segments/$client_segment_id_2"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [404]
+
+                                              ##### User Tags Test #####
+                                              ##### User Tags Test #####
+                                              ##### User Tags Test #####
+                                              ##### User Tags Test #####
+
+
+                                        ####################
+                                        # TARGET 1 ADD #
+
+- test:
+    - name: "ADD STRING MULTI TAG TO USER 1-- "
+    - url: {template: "$push_host$push_uri_prefix/tags/user"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"userId": "$consumer1_id",
+                         "key": "$multi_tag_name_str",
+                         "valueWrite": "Sabah"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "ADD STRING MULTI TAG TO USER 1 -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/user"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"userId": "$consumer1_id",
+                         "key": "$multi_tag_name_str",
+                         "valueWrite": "radikal"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "ADD STRING KEY-VALUE TAG TO USER 1 -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/user"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"userId": "$consumer1_id",
+                         "key": "$key_value_tag_name_str",
+                         "valueWrite": "asdfsdfas"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "ADD STRING KEY TAG TO USER 1 -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/user"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"userId": "$consumer1_id",
+                         "key": "$key_tag_name_str",
+                         "valueWrite": "null"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "ADD FLOAT MULTI TAG TO USER 1 -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/user"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"userId": "$consumer1_id",
+                         "key": "$multi_tag_name_float",
+                         "valueWrite": "21.12"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "ADD FLOAT MULTI TAG TO USER 1 -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/user"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"userId": "$consumer1_id",
+                         "key": "$multi_tag_name_float",
+                         "valueWrite": "11.11"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "ADD FLOAT KEY-VALUE TAG TO USER 1 -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/user"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"userId": "$consumer1_id",
+                         "key": "$key_value_tag_name_float",
+                         "valueWrite": "99.88"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "ADD INTEGER MULTI TAG TO USER 1-- "
+    - url: {template: "$push_host$push_uri_prefix/tags/user"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"userId": "$consumer1_id",
+                         "key": "$multi_tag_name_integer",
+                         "valueWrite": "55"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "ADD INTEGER KEY TAG TO USER 1 -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/user"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"userId": "$consumer1_id",
+                         "key": "$key_value_tag_name_integer",
+                         "valueWrite": "12123"}'}
+    - expected_status: [202]
+
+                                        #####################################
+                                        # TARGET 1 RETRIEVE, UPDATE, DELETE #
+
+- test:
+    - name: "LIST ALL TAGS OF USER -- user_id "
+    - url: {template: "$push_host$push_uri_prefix/tags/user?userParam=$consumer1_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+
+- test:
+    - name: "RETRIEVE TAG OF USER 1 -- user_id, tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/user/$consumer1_id?tagKey=$key_value_tag_name_str"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$key_value_tag_name_str"}}
+
+- test:
+    - name: "USER 1 DELETE MULTI STRING TAG -- user_id, tag_name, tag_value "
+    - url: {template: "$push_host$push_uri_prefix/tags/user/$consumer1_id?tagKey=$multi_tag_name_str&tagValue=radikal"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+#todo: not contains deleted value
+- test:
+    - name: "RETRIEVE USER 1 STRING MULTI TAG -- user_id, tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/user/$consumer1_id?tagKey=$multi_tag_name_str"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+
+- test:
+    - name: "USER 1 DELETE STRING MULTI TAG -- user_id, tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/user/$consumer1_id?tagKey=$multi_tag_name_str"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "USER 1 RETRIEVE DELETED TAG -- user_id, tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/user/$consumer1_id?tagKey=$multi_tag_name_str"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "USER 1DELETE STRING KEY-VALUE TAG -- user_id, tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/user/$consumer1_id?tagKey=$key_value_tag_name_str"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "USER 1 RETRIEVE DELETED TAG -- user_id, tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/user/$consumer1_id?tagKey=$key_value_tag_name_str"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [400]
+
+- test:
+    - name: "USER 1 DELETE FLOAT MULTI TAG VALUE -- user_id, tag_name, tag_value "
+    - url: {template: "$push_host$push_uri_prefix/tags/user/$consumer1_id?tagKey=$multi_tag_name_float&tagValue=11.11"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+#todo: not contains deleted value
+- test:
+    - name: "USER 1 RETRIEVE FLOAT MULTI TAG -- user_id, tag_name "
+    - url: {template: "$push_host$push_uri_prefix/tags/user/$consumer1_id?tagKey=$multi_tag_name_float"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+
+- test:
+    - name: "LIST ALL TAGS OF USER 1 -- user_id "
+    - url: {template: "$push_host$push_uri_prefix/tags/user?userParam=$consumer1_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+
+- test:
+    - name: "DELETE ALL TAGS OF USER 1 -- user_id "
+    - url: {template: "$push_host$push_uri_prefix/tags/user/$consumer1_id"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+
+                                        ####################
+                                        # TARGET 2,3,4 ADD #
+
+- test:
+    - name: "TARGET 2 ADD DEVICE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/user"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"userId": "$consumer2_id",
+                         "key": "$device_tag",
+                         "valueWrite": "ios"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "TARGET 3 ADD DEVICE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/user"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"userId": "$consumer3_id",
+                         "key": "$device_tag",
+                         "valueWrite": "android"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "TARGET 4 ADD DEVICE TAG -- "
+    - url: {template: "$push_host$push_uri_prefix/tags/user"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"userId": "$consumer4_id",
+                         "key": "$device_tag",
+                         "valueWrite": "ios"}'}
+    - expected_status: [202]
+
+                                              ##### Message Test #####
+                                              ##### Message Test #####
+                                              ##### Message Test #####
+                                              ##### Message Test #####
+
+- test:
+    - name: "CREATE SCHEDULED MESSAGE 1 -- "
+    - url: {template: "$push_host$push_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Hi",
+                         "body": "Hello World",
+                         "type": "scheduled",
+                         "language": "English",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": null,
+                         "audience": "$client_segment_id_1",
+                         "consumers": [],
+                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00",
+                         "extra": {}}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'message_id_1': {jsonpath_mini: 'content.messageId'}
+
+- test:
+    - name: "CREATE SCHEDULED MESSAGE 1 - 2 -- "
+    - url: {template: "$push_host$push_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Hi",
+                         "body": "Hello World",
+                         "type": "scheduled",
+                         "language": "English",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": null,
+                         "audience": "$client_segment_id_1",
+                         "consumers": [],
+                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00",
+                         "extra": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'message_id_1': {jsonpath_mini: 'content.messageId'}
+
+- test:
+    - name: "CREATE SCHEDULED MESSAGE 1 - 3 -- "
+    - url: {template: "$push_host$push_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Hi",
+                         "body": "Hello World",
+                         "type": "scheduled",
+                         "language": "English",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": null,
+                         "audience": "$client_segment_id_1",
+                         "consumers": [],
+                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00",
+                         "extra": {"reference_id": 1234567890}}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'message_id_1': {jsonpath_mini: 'content.messageId'}
+
+- test:
+    - name: "CREATE SCHEDULED MESSAGE 2 -- "
+    - url: {template: "$push_host$push_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Merhaba-delete",
+                         "body": "Merhaba Dunya",
+                         "type": "scheduled",
+                         "language": "Turkish",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": "null",
+                         "consumers": [],
+                         "audience": "$client_segment_id_1",
+                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00",
+                         "extra": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'message_id_2': {jsonpath_mini: 'content.messageId'}
+
+- test:
+    - name: "CREATE SCHEDULED MESSAGE 3 -- "
+    - url: {template: "$push_host$push_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Merhaba",
+                         "body": "Merhaba Dunya",
+                         "type": "scheduled",
+                         "language": "Turkish",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": "null",
+                         "consumers": [],
+                         "audience": "$client_segment_id_3",
+                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00",
+                         "extra": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'message_id_3': {jsonpath_mini: 'content.messageId'}
+
+- test:
+    - name: "CREATE ORDINARY MESSAGE 4 -- "
+    - url: {template: "$push_host$push_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Merhaba",
+                         "body": "Merhaba Dunya",
+                         "type": "ordinary",
+                         "language": "Turkish",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": "null",
+                         "consumers": [],
+                         "audience": "$client_segment_id_3",
+                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00",
+                         "extra": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'message_id_4': {jsonpath_mini: 'content.messageId'}
+
+#- test:
+#    - name: "UPDATE ORDINARY MESSAGE 4 -- "
+#    - url: {template: "$push_host$push_uri_prefix/messages"}
+#    - method: 'POST'
+#    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+#    - body: {template: '{"title": "Updated Ordinary Merhaba",
+#                         "body": "Updated Ordinary Merhaba Dunya",
+#                         "type": "ordinary",
+#                         "language": "Turkish",
+#                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+#                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+#                         "badge": "null",
+#                         "audience": "$client_segment_id_3",
+#                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00"}'}
+#    - expected_status: [400]
+#    - extract_binds:
+#        - 'message_id_4': {jsonpath_mini: 'content.messageId'}
+
+- test:
+    - name: "CREATE SCHEDULED MESSAGE 5 -- "
+    - url: {template: "$push_host$push_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Merhaba",
+                         "body": "Merhaba Dunya",
+                         "type": "scheduled",
+                         "language": "Turkish",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": "null",
+                         "consumers": [],
+                         "audience": "$target_segment_id_1",
+                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00",
+                         "extra": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'message_id_5': {jsonpath_mini: 'content.messageId'}
+
+- test:
+    - name: "CREATE ORDINARY MESSAGE 6 -- "
+    - url: {template: "$push_host$push_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Merhaba",
+                         "body": "Merhaba Dunya",
+                         "type": "ordinary",
+                         "language": "Turkish",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": "null",
+                         "consumers": [],
+                         "audience": "$client_segment_id_3",
+                         "scheduleTime": null,
+                         "extra": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'message_id_6': {jsonpath_mini: 'content.messageId'}
+
+- test:
+    - name: "CREATE ORDINARY CONSUMER PUSH MESSAGE 7 -- "
+    - url: {template: "$push_host$push_uri_prefix/messages"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Merhaba",
+                         "body": "Merhaba Dunya",
+                         "type": "ordinary",
+                         "language": "Turkish",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": "null",
+                         "consumers": ["$consumer2_id", "$consumer3_id", "$consumer4_id"],
+                         "audience": null,
+                         "scheduleTime": null,
+                         "extra": null}'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'message_id_7': {jsonpath_mini: 'content.messageId'}
+
+- test:
+    - name: "LIST PUSH MESSAGE -- page_size "
+    - url: {template: "$push_host$push_uri_prefix/messages?page_size=4"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - extract_binds:
+      - 'message_continuation_1': {jsonpath_mini: 'content.continuation'}
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$message_id_7"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$message_id_6"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$message_id_5"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$message_id_4"}}
+
+- test:
+    - name: "LIST PUSH MESSAGE -- page_size, continuation "
+    - url: {template: "$push_host$push_uri_prefix/messages?page_size=10&continuation=$message_continuation_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$message_id_3"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$message_id_2"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$message_id_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$message_continuation_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "\"continuation\": null"}}
+
+- test:
+    - name: "RETRIEVE MESSAGE 1 -- message_id "
+    - url: {template: "$push_host$push_uri_prefix/messages/$message_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_segment_id_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Hello World"}}
+
+- test:
+    - name: "RETRIEVE MESSAGE 2 -- message_id "
+    - url: {template: "$push_host$push_uri_prefix/messages/$message_id_2"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_segment_id_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Merhaba Dunya"}}
+
+- test:
+    - name: "RETRIEVE MESSAGE 7 (Consumer push message) -- message_id "
+    - url: {template: "$push_host$push_uri_prefix/messages/$message_id_7"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Merhaba Dunya"}}
+
+- test:
+    - name: " UPDATE MESSAGE 7 -- message_id"
+    - url: {template: "$push_host$push_uri_prefix/messages/$message_id_7"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Updated Message 7 Hi",
+                         "body": "Updated Hello World....",
+                         "type": "scheduled",
+                         "language": "English",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": null,
+                         "consumers": ["$consumer2_id", "$consumer3_id"],
+                         "audience": null,
+                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00",
+                         "extra": null}'}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE UPDATED MESSAGE 7 (Consumer push message) -- message_id "
+    - url: {template: "$push_host$push_uri_prefix/messages/$message_id_7"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "Updated Hello World"}}
+
+- test:
+    - name: "ERROR RETRIEVE MESSAGE -- message_id -- invalid_token "
+    - url: {template: "$push_host$push_uri_prefix/messages/$message_id_1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_2"}}
+    - expected_status: [401]
+
+- test:
+    - name: "UPDATE MESSAGE 1 -- message_id"
+    - url: {template: "$push_host$push_uri_prefix/messages/$message_id_1"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Updated Hi",
+                         "body": "Updated Hello World....",
+                         "type": "scheduled",
+                         "language": "English",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": null,
+                         "consumers": [],
+                         "audience": "$client_segment_id_1",
+                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00",
+                         "extra": null}'}
+    - expected_status: [202]
+
+- test:
+    - name: " UPDATE MESSAGE 7(Invalid Update) -- message_id"
+    - url: {template: "$push_host$push_uri_prefix/messages/$message_id_7"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Updated Message 7 Hi",
+                         "body": "Updated Hello World....",
+                         "type": "scheduled",
+                         "language": "English",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": null,
+                         "consumers": [],
+                         "audience": "$client_segment_id_1",
+                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00",
+                         "extra": null}'}
+    - expected_status: [202]
+
+- test:
+    - name: "Invalid UPDATE MESSAGE 1 -- message_id"
+    - url: {template: "$push_host$push_uri_prefix/messages/$message_id_1"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"title": "Updated Hi",
+                         "body": "Updated Hello World....",
+                         "type": "scheduled",
+                         "language": "English",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": null,
+                         "consumers": "[\"$consumer2_id\"]",
+                         "audience": null,
+                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00",
+                         "extra": null}'}
+    - expected_status: [202]
+
+- test:
+    - name: "UPDATE MESSAGE 1 WITH INVALID TOKEN -- message_id"
+    - url: {template: "$push_host$push_uri_prefix/messages/$message_id_1"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $invalid_token"}}
+    - body: {template: '{"title": "Invalid TokenHi",
+                         "body": "Invalid Token Hello World....",
+                         "type": "scheduled",
+                         "language": "English",
+                         "icon": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "image": "https://avatars0.githubusercontent.com/u/10046644?s=200&v=4",
+                         "badge": "null",
+                         "audience": "$client_segment_id_1",
+                         "scheduleTime": "2017-08-20T08:54:56.750Z00:00",
+                         "extra": null}'}
+    - expected_status: [401]
+
+- test:
+    - name: "DELETE MESSAGE -- message_id "
+    - url: {template: "$push_host$push_uri_prefix/messages/$message_id_2"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [202]
+
+- test:
+    - name: "RETRIEVE DELETED MESSAGE -- message_id "
+    - url: {template: "$push_host$push_uri_prefix/messages/$message_id_2"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [404]
+
+- test:
+    - name: "LIST PUSH MESSAGE "
+    - url: {template: "$push_host$push_uri_prefix/messages"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_segment_id_1"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$client_segment_id_3"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$target_segment_id_1"}}
+
+                                              ##### Acknowledgement Test #####
+                                              ##### Acknowledgement Test #####
+                                              ##### Acknowledgement Test #####
+                                              ##### Acknowledgement Test #####
+
+- test:
+    - name: "ACKNOWLEDGEMENT CREATE (Clients use to notify provider about that it received the message.)"
+    - url: {template: "$push_host$push_uri_prefix/acknowledgements"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "$client_id3",
+                         "messageId": "$message_id_1"}'}
+    - expected_status: [202]
+
+- test:
+    - name: "ACKNOWLEDGEMENT CREATE -- invalid_client_id, invalid_message_id"
+    - url: {template: "$push_host$push_uri_prefix/acknowledgements"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Token $consumer_token_1"}}
+    - body: {template: '{"clientId": "124124sdfsdfds",
+                         "messageId": "123123"}'}
+    - expected_status: [202]
+
+
+- test:
+    - name: "Delete account "
+    - url: {template: "$saas_host/$saas_uri_prefix/account"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$saas_admin_token"}}
+    - expected_status: [202]

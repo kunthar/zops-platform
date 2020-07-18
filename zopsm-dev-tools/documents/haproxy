@@ -1,0 +1,50 @@
+haproxy
+===============
+
+rate limiting
+--------------
+
+while true;do echo "show table http-internal" | sudo socat /var/run/haproxy/admin.sock stdio; sleep 5;done
+
+while true;do curl -vv https://gw.zops.io; echo -e '\n\n\n';done
+
+
+
+sudo docker run -e CONSUL_ENABLE=1 -e PROXY_ADDRESS="https://docs.zops.io/consul" -e CONSUL_ADDR=172.17.0.10:8500 -p 8000:3000 jippi/hashi-ui
+
+
+
+
+
+nginx
+======
+
+haproxy to nginx proxying
+-------
+
+haproxy.conf
+
+server xxx 10.0.0.1:12112 send-proxy
+
+------------------------------------
+
+limit_req_zone $request_uri zone=by_uri:10m rate=100r/m;
+
+upstream "gw" {
+            server 172.17.0.10:12355;
+            server 172.17.0.11:14341;
+}
+server {
+    listen       9000 proxy_protocol;
+    server_name  gw.zops.io www.gw.zops.io;
+
+    location / {
+        limit_req zone=by_uri burst=5 nodelay;
+        proxy_pass http://gw/;
+        proxy_set_header Host            $host;
+        proxy_set_header X-Real-IP       $proxy_protocol_addr;
+        proxy_set_header X-Forwarded-For $proxy_protocol_addr;
+    }
+}
+
+------------------------------------------

@@ -1,0 +1,41 @@
+version 6
+
+server_myssh_ports="tcp/99"
+client_myssh_ports="default"
+
+trusted_ips="{% for host in groups['all'] %}
+{{ hostvars[host].ansible_ssh_host }} {% if not loop.last %}{% endif %}
+{% endfor %}"
+
+interface4 eth0 zopsm src "${trusted_ips} 172.17.0.0/24"
+    server all       accept
+    client all       accept
+
+{% if web is defined  %}
+services="dns http https myssh"
+{% else %}
+services="myssh"
+{% endif %}
+
+interface4 eth0 public
+    protection strong "100/sec"
+    server "${services}"        accept
+    client "${services}"        accept
+
+{% if docker is defined %}
+
+router docker2internet inface docker0 outface eth0
+        masquerade
+        route all accept
+
+interface docker0 docker
+        policy accept
+
+iptables -t nat -N DOCKER
+iptables -t filter -N DOCKER
+iptables -N DOCKER-ISOLATION
+
+{% endif %}
+
+FIREHOL_AUTOSAVE="/home/ubuntu/firehol-saved-ipv4.txt"
+FIREHOL_AUTOSAVE6="/home/ubuntu/firehol-saved-ipv6.txt"

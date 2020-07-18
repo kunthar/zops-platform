@@ -1,0 +1,198 @@
+.features-tabs-section{
+  background: #227790;
+  margin-top: 0px;
+  height: 400px;
+}
+.features-tabs-section .header {
+  text-align: center;
+  padding-top: 60px;
+}
+.features-tabs-section .header p {
+  font-size: 16px;
+  font-weight: 400;
+  color: #ffffff;
+}
+.index-hero{
+  /*background-color: #346E82 !important;*/
+  position: relative;
+  background-image: url("../../../assets/images/zops/zops-pricing.jpg");
+  background-repeat:no-repeat;
+  background-position: center;
+  height: 750px;
+  background-size: 1000px;
+  background-color: #ffffff;
+  margin-bottom: -100px;
+}
+.index-hero:after {
+  position: absolute;
+  content: '';
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+.product-title{
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 400;
+  letter-spacing: -.0em;
+  line-height: 100px;
+  font-size: 50px;
+  color: #ffffff;
+}
+.support{
+  margin-top: 0px;
+  background-color:#EDEDED;
+  padding: 100px;
+}
+.support .topic {
+  margin-bottom: 45px;
+  color: #454545;
+
+}
+.support .topic p {
+  margin-top: 17px;
+  color: #454545;
+}
+
+.group-header__title {
+  letter-spacing: 1.5px;
+  color: #454545;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  text-transform: uppercase;
+  font-weight: 200;
+  font-size: 20px;
+  letter-spacing: -.01em;
+  line-height: 20px;
+  margin-bottom: 50px;
+}
+.btn-shadow.btn-shadow-success {
+  background: #FED231;
+  border-radius: 10px;
+
+}
+.btn-shadow.btn-shadow-success:hover{
+  background: #FED231;
+  border-radius: 10px;
+
+}
+.cta-section {
+  text-align: center;
+  margin-top: 0px;
+}
+
+.cta-section a {
+  display: inline-block;
+  margin-top: 30px;
+  background: #6caae4;
+  color: #fff;
+  padding: 23px 40px;
+  font-size: 17px;
+  letter-spacing: 1px;
+  text-transform: none;
+  font-weight: 500;
+  border-radius: 5px;
+  box-shadow: rgba(23,43,99,.3) 0 7px 28px;
+}
+.pricing-3-options-section {
+  margin-top: 30px;
+}
+.pricing-3-options-section .contact .wrapper {
+  margin-bottom: 20px;
+}
+
+.pricing-band {
+  padding: 1px;
+}
+.fine-print__list {
+  text-align: center;
+  margin: 5px 0;
+  padding: 0;
+}
+.fine-print__item {
+  display: inline-block;
+  color: #0d112b;
+  font-weight: 200;
+  font-size: 15px;
+  padding: 0 8px 0 9px;
+  position: relative;
+}
+.fine-print__link {
+  content: "";
+  color: inherit;
+  position: relative;
+  text-decoration: none;
+  border-bottom: solid 1px #0d112b;
+  opacity: .6;
+  left: 0;
+  right: 0;
+  bottom: 1px;
+}
+
+.call-to-action-link {
+  display: inline-block;
+}
+
+.support-topics{
+  margin-top: 0px;
+  padding: 100px;
+  margin-bottom: 0px;
+
+}
+.online-support {
+  background: #f8fdfe;
+  border: 1px solid #bee1f3;
+  margin-top: 20px;
+  border-radius: 6px;
+  padding: 20px 22px 18px 22px;
+  width: 70%;
+}
+.services-grid-section {
+  margin-top: 30px;
+}
+.services-grid-section--border .header {
+  border-top: 1px solid #e6e6e8;
+  padding-top: 70px;
+  padding-bottom: 70px;
+}
+.services-grid-section .header h3 {
+  font-size: 26px;
+  color: #104C5E;
+  line-height: 33px;
+  font-weight: 400;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  padding-top: 30px;
+}
+.products {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 400;
+  letter-spacing: -.06em;
+  line-height: 100px;
+  font-size: 30px;
+  color: #104C5E;
+}
+.btn-talk {
+  border: 0;
+  font-weight: 600;
+  color: #fff;
+  display: inline-block;
+  box-shadow: rgba(23,43,99,.24) 0 7px 28px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 13px;
+  padding: 12px 23px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btn-talk.btn-talk-success {
+  background: #FED231;
+  border-radius: 10px;
+
+}
+.btn-talk.btn-talk-success:hover{
+  background: #FED231;
+  border-radius: 10px;
+
+}

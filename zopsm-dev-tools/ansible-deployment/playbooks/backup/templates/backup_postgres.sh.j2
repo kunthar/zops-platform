@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#
+# Backup a Postgresql database into a daily file.
+#
+
+mkdir -p /var/backups/postgresql
+chown -R postgres:postgres /var/backups/postgresql
+sudo su - postgres -c '
+DAYS_TO_KEEP=14
+OUTPUT_FILE=/var/backups/postgresql/pg_backup_`date +"%Y%m%d%H%M"`
+PGPASSWORD=LuCahN7VpooK8wuziThie0airieG8ede pg_dump --host {{ ansible_default_ipv4.address }} -U postgres zopsm -F p -f ${OUTPUT_FILE}.sql
+tar -cvf  ${OUTPUT_FILE}.tar.gz ${OUTPUT_FILE}.sql
+'

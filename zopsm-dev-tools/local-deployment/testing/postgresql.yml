@@ -1,0 +1,59 @@
+###################################### POSTGRESQL #############################################
+
+- hosts: postgres
+  remote_user: ubuntu
+  gather_facts: yes
+  become: yes
+
+  tasks:
+  - name: add new configuration to "/etc/postgresql/10/main/pg_hba.conf"
+    blockinfile:
+      dest: /etc/postgresql/10/main/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0           trust
+      state: present
+
+  - name: reloaded postgresql.service
+    systemd:
+      name: postgresql
+      state: reloaded
+
+  - name: create testing db
+    postgresql_db:
+      name: testing
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      port: 5432
+      state: present
+
+  - name: create tester user for zopsm db
+    postgresql_user:
+      db: testing
+      name: tester
+      encrypted: yes
+      password: aeBo8AiKood9IeWo
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      port: 5432
+      state: present
+
+  - name: add  tester new configuration to "/etc/postgresql/10/main/pg_hba.conf"
+    lineinfile:
+      path: /etc/postgresql/10/main/pg_hba.conf
+      insertafter: '^# END ANSIBLE MANAGED BLOCK'
+      line: 'host    all             tester             172.25.0.0/24           md5'
+      state: present
+
+  - name: remove new configuration to "/etc/postgresql/10/main/pg_hba.conf"
+    blockinfile:
+      dest: /etc/postgresql/10/main/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0           trust
+      state: absent
+
+  - name: restart postgresql.service
+    systemd:
+      name: postgresql
+      state: reloaded
+
+#############################################################################################

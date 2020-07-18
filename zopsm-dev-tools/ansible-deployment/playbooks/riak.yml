@@ -1,0 +1,225 @@
+- hosts: riak
+  remote_user: ubuntu
+  gather_facts: yes
+  become: yes
+#
+  tasks:
+#  - name: ensure locale is en_US.UTF-8
+#    locale_gen:
+#      name: en_US.UTF-8
+#      state: present
+#
+#  - name: download riak repo script
+#    get_url:
+#      url: https://packagecloud.io/install/repositories/basho/riak/script.deb.sh
+#      dest: /tmp/script.deb.sh
+#
+#  - name: run riak repo script
+#    shell: bash /tmp/script.deb.sh state=present
+#
+#  - name: install riak
+#    apt: pkg=riak state=installed
+#
+#  - name: add riak nodes to /etc/hosts
+#    lineinfile:
+#      dest: /etc/hosts
+#      line: "{{ hostvars[item].ansible_ssh_host }} {{ hostvars[item].inventory_hostname }}"
+#      state: present
+#    with_items: "{{ groups['riak'] }}"
+#    notify:
+#      - stop riak
+#
+#  - name: replace 127.0.0.1 with node's ip in riak.conf
+#    replace:
+#      path: /etc/riak/riak.conf
+#      regexp: '127\.0\.0\.1'
+#      replace: "{{ hostvars[item].ansible_ssh_host }}"
+#    delegate_to: "{{ hostvars[item].ansible_ssh_host }}"
+#    with_items: "{{ groups['riak'] }}"
+#
+#  - name: change system settings for riak
+#    shell: |
+#      echo 'ulimit -n 200000' >> /etc/default/riak
+#      echo "session    required   pam_limits.so" >> /etc/pam.d/common-session
+#      echo "session    required   pam_limits.so" >> /etc/pam.d/common-session-noninteractive
+#      sed -i '$i\*              soft     nofile          65536\n\*              hard     nofile          200000'  /etc/security/limits.conf
+#      sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="elevator=noop /' /etc/default/grub
+#      sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="clocksource=hpet /' /etc/default/grub
+#      update-grub
+#
+#  - name: create /var/lib/riak/buckets_with_30d_ttl
+#    file:
+#      path: /var/lib/riak/buckets_with_30d_ttl
+#      owner: riak
+#      group: riak
+#      state: directory
+#
+#  - name: create /var/lib/riak/buckets_with_7d_ttl
+#    file:
+#      path: /var/lib/riak/buckets_with_7d_ttl
+#      owner: riak
+#      group: riak
+#      state: directory
+#
+#  - name: create /var/lib/riak/buckets_with_no_ttl
+#    file:
+#      path: /var/lib/riak/buckets_with_no_ttl
+#      owner: riak
+#      group: riak
+#      state: directory
+#
+#  - name: change multiple options in /etc/riak/riak.conf
+#    blockinfile:
+#      path: /etc/riak/riak.conf
+#      block: |
+#        storage_backend = multi
+#        multi_backend.buckets_with_30d_ttl.storage_backend = leveldb
+#        multi_backend.buckets_with_30d_ttl.leveldb.expiration = on
+#        multi_backend.buckets_with_30d_ttl.leveldb.expiration.retention_time = 30d
+#        multi_backend.buckets_with_30d_ttl.leveldb.maximum_memory.percent = 50
+#        multi_backend.buckets_with_30d_ttl.leveldb.expiration.mode = whole_file
+#        multi_backend.buckets_with_30d_ttl.leveldb.data_root = /var/lib/riak/buckets_with_30d_ttl
+#
+#        multi_backend.buckets_with_7d_ttl.storage_backend = leveldb
+#        multi_backend.buckets_with_7d_ttl.leveldb.expiration = on
+#        multi_backend.buckets_with_7d_ttl.leveldb.expiration.retention_time = 7d
+#        multi_backend.buckets_with_7d_ttl.leveldb.maximum_memory.percent = 50
+#        multi_backend.buckets_with_7d_ttl.leveldb.expiration.mode = whole_file
+#        multi_backend.buckets_with_7d_ttl.leveldb.data_root = /var/lib/riak/buckets_with_7d_ttl
+#
+#        multi_backend.buckets_with_no_ttl.storage_backend = leveldb
+#        multi_backend.buckets_with_no_ttl.leveldb.maximum_memory.percent = 50
+#        multi_backend.buckets_with_no_ttl.leveldb.data_root = /var/lib/riak/buckets_with_no_ttl
+#
+#        multi_backend.default = buckets_with_no_ttl
+#
+#        buckets.default.last_write_wins = false
+#        buckets.default.allow_mult = true
+#    notify:
+#      - start riak
+#
+#  - name: copy riak.service to nodes
+#    copy:
+#      src: /home/ubuntu/zopsm-dev-tools/services/riak.service
+#      dest: /lib/systemd/system/
+#      remote_src: no
+#
+  - name: copy riak-consul.service to nodes
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/services/riak-consul.service
+      dest: /etc/systemd/system/
+      remote_src: no
+
+  - name: restart riak.service on nodes
+    systemd:
+      state: restarted
+      daemon_reload: yes
+      name: riak
+
+  - name: enable riak.service to start at boot
+    systemd:
+      enabled: yes
+      name: riak
+
+  handlers:
+  - name: start riak
+    service: name=riak state=started
+  - name: stop riak
+    service: name=riak state=stopped
+  - name: restart riak
+    service: name=riak state=restarted
+
+##################################################################################
+
+
+#- hosts: riak
+#  remote_user: ubuntu
+#  gather_facts: yes
+#  become: yes
+#
+#  tasks:
+#  - name: create /etc/systemd/system/riak-consul.service.d if it doesn't exist
+#    file:
+#      path: /etc/systemd/system/riak-consul.service.d
+#      state: directory
+#
+#  - name: create /etc/systemd/system/riak-consul.service.d/custom.conf
+#    file:
+#      path: /etc/systemd/system/riak-consul.service.d/custom.conf
+#      state: touch
+#
+#  - name: modify riak-consul.service to add CONSUL_HTTP_ADDR environment variable to riak-consul user's environment
+#    blockinfile:
+#      path: /etc/systemd/system/riak-consul.service.d/custom.conf
+#      block: |
+#        [Service]
+#        Environment=CONSUL_HTTP_ADDR={{ ansible_default_ipv4.address }}:8500
+#
+#  - name: restart riak.service on nodes
+#    systemd:
+#      state: restarted
+#      daemon_reload: yes
+#      name: riak
+#
+##################################################################################
+#
+#- hosts: riak-join
+#  remote_user: ubuntu
+#  gather_facts: yes
+#  become: yes
+#
+#  tasks:
+#  - name: run riak-admin cluster join rabbit-join nodes
+#    shell: riak-admin cluster join riak@{{ hostvars[groups['riak-leader'][0]].ansible_ssh_host }}
+#    register: cluster_join
+#
+#  - name: run  riak-admin cluster plan on riak-join nodes
+#    shell:  riak-admin cluster plan
+#    when: cluster_join|succeeded
+#    register: cluster_plan
+#
+#  - name: run riak-admin cluster commit on riak-join nodes
+#    shell: riak-admin cluster commit
+#    when: cluster_plan|succeeded
+#
+#  - name: create hook bucket-type
+#    shell: riak-admin bucket-type create zopsm_rabbit_hook '{"props":{"backend":"buckets_with_30d_ttl","postcommit":[{"mod":"riak_rabbitmq","fun":"postcommit_send_amqp"}]}}'
+#    delegate_to: "{{ hostvars[groups['riak-leader'][0]].ansible_ssh_host }}"
+#    register: create_bucket_type
+#
+#  - name: activate hook bucket-type
+#    shell: riak-admin bucket-type activate zopsm_rabbit_hook
+#    when: create_bucket_type|succeeded
+#
+#  - name: create hook bucket-type
+#    shell: riak-admin bucket-type create zopsm '{"props":{"backend":"buckets_with_no_ttl"}}'
+#
+#  - name: activate hook bucket-type
+#    shell: riak-admin bucket-type activate zopsm
+#
+#  - name: create zopsm_logs bucket-type
+#    shell: riak-admin bucket-type create zopsm_logs '{"props":{"backend":"buckets_with_7d_ttl"}}'
+#    delegate_to: "{{ hostvars[groups['riak-leader'][0]].ansible_ssh_host }}"
+#    register: create_zopsm_logs
+#
+#  - name: activate zopsm_logs bucket-type
+#    shell: riak-admin bucket-type activate zopsm_logs
+#    when: create_zopsm_logs|succeeded
+#
+#  - name: create zopsm_30d_ttl_buckets bucket-type
+#    shell: riak-admin bucket-type create zopsm_30d_ttl_buckets '{"props":{"backend":"buckets_with_30d_ttl"}}'
+#    delegate_to: "{{ hostvars[groups['riak-leader'][0]].ansible_ssh_host }}"
+#    register: create_zopsm_30d_ttl_buckets
+#
+#  - name: activate zopsm_30d_ttl_buckets bucket-type
+#    shell: riak-admin bucket-type activate zopsm_30d_ttl_buckets
+#    when: create_zopsm_30d_ttl_buckets|succeeded
+#
+#  - name: create zopsm_non_ttl_buckets bucket-type
+#    shell: riak-admin bucket-type create zopsm_non_ttl_buckets '{"props":{"backend":"buckets_with_no_ttl"}}'
+#    delegate_to: "{{ hostvars[groups['riak-leader'][0]].ansible_ssh_host }}"
+#    register: create_zopsm_30d_buckets
+#
+#  - name: activate zopsm_non_ttl_buckets bucket-type
+#    shell: riak-admin bucket-type activate zopsm_non_ttl_buckets
+#    when: create_zopsm_non_ttl_buckets|succeeded

@@ -1,0 +1,23 @@
+---
+- hosts: postgres
+  become: yes
+  remote_user: ubuntu
+
+  tasks:
+  - name: copy backup script
+    template:
+        src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/playbooks/backup/templates/backup_postgres.sh.j2
+        dest: /usr/local/bin/backup_postgres.sh
+        owner: root
+        group: root
+        mode: 0744
+
+  - name: run postgresql
+    cron:
+      name: "backup postgresql"
+      minute: "{{ 60 |random }}"
+      hour: 5
+      job: '/usr/local/bin/backup_postgres.sh'
+      cron_file: postgresql
+      user: "root"
+      state: present

@@ -1,0 +1,88 @@
+@startuml
+
+abstract class AbstractManager {
+    email : string <70>
+    password : string <128>
+}
+
+abstract class AbstractAccount {
+    organization_name : string <70>
+    address : string <200>
+    phone : int <11>
+}
+
+class ZopsBaseModel {
+    _id : string <32>
+    creation_time : DateTime
+    last_update_time : DateTime
+    is_deleted : Bool
+    is_active : Bool
+    get_time() : DateTime
+    id() : string
+}
+
+
+class Tenant {
+    email : string <70>
+}
+
+class TenantManager {
+    tenant_id : string <32>
+}
+
+class Account {
+    email : string <70>
+    tenant_id : string <32>
+}
+
+class AccountManager {
+    account_id : string <32>
+    tenant_id : string <32>
+}
+
+abstract class AbstractInfo {
+    name : string <70>
+    description : string <200>
+}
+
+class Project {
+    account_id : string <32>
+    users : User
+    services : Service
+}
+
+class Service {
+    catalog_id : string <32>
+    token : string <40>
+    project_id : string <32>
+}
+
+class ServiceCatalog {
+
+}
+
+class User {
+
+}
+
+class ProjectUser {
+    user_id : string <32>
+    project_id : string <32>
+}
+
+
+
+AbstractManager <|-- TenantManager
+AbstractManager <|-- AccountManager
+AbstractManager <|-- User
+
+AbstractAccount <|-- Account
+AbstractAccount <|-- Tenant
+
+AbstractInfo <|-- Project
+AbstractInfo <|-- Service
+
+TenantManager *-- Tenant
+AccountManager *-- Account
+
+@enduml

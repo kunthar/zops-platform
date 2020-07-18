@@ -1,0 +1,11 @@
+@startuml
+actor Developer
+collections CNS
+collections ProviderDashboard
+
+Developer -> CNS : Enables Remotes Notifications and Creates Certificate
+CNS -> Developer : Downloads Certificate
+
+Developer -> ProviderDashboard  : Uploads The Certificate
+
+@enduml

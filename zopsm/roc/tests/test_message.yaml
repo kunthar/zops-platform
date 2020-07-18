@@ -1,0 +1,238 @@
+---
+- config:
+    - testset: "Message Actions"
+    - generators:
+      # Generator named 'id' that counts up from 10
+      - 'email_handler': {type: 'random_text', max_length: 10}
+    - variable_binds: {uri_prefix: 'v1/roc'}
+
+########################################################################################################################
+## MESSAGE TESTS
+
+- test:
+    - name: "Post Message To Private Chat"
+    - url: {template: "$uri_prefix/messages"}
+    - method: 'POST'
+    - body: '{
+      "title": "Title",
+      "body": "This is a test message.",
+      "receiver": "testUser8",
+      "sentTime": "2017-08-20T08:54:56.750Z00:00",
+      "channel": null,
+      "serviceId": "TestService1"}'
+    - headers: {'Content-Type': 'application/json', 'Authorization': Token testUser0}
+    - expected_status: [202]
+
+
+- test:
+    - name: "Post Message To Channel"
+    - url: {template: "$uri_prefix/messages"}
+    - method: 'POST'
+    - body: '{
+      "title": "Title",
+      "body": "This is a test message.",
+      "receiver": null,
+      "sentTime": "2017-08-20T08:54:56.750Z00:00",
+      "channel": "testChannel3",
+      "serviceId": "TestService1"}'
+    - headers: {'Content-Type': 'application/json', 'Authorization': Token testUser0}
+    - expected_status: [202]
+
+
+- test:
+    - name: "Start Assertions for ws Clients"
+    - url: {template: "$uri_prefix/messages"}
+    - method: 'POST'
+    - body: '{
+      "title": "Title",
+      "body": "Start assertions",
+      "receiver": null,
+      "sentTime": "2017-08-20T08:54:56.750Z00:00",
+      "channel": "testChannel3",
+      "serviceId": "TestService1"}'
+    - headers: {'Content-Type': 'application/json', 'Authorization': Token testUser0}
+    - expected_status: [202]
+
+
+- test:
+    - name: "List messages of a channel"
+    - url: {template: "$uri_prefix/messages?channel=testChannel3"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", 'Authorization': Token testUser0 }}
+    - expected_status: [200]
+
+
+- test:
+    - name: "List messages of a private chat"
+    - url: {template: "$uri_prefix/messages?receiver=testUser8"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", 'Authorization': Token testUser0 }}
+    - expected_status: [200]
+
+
+- test:
+    - name: "Get a message from a private chat"
+    - url: {template: "$uri_prefix/messages/KKhoLJwTd20WAkvDrb9f5Fg0yWw"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser0}}
+    - expected_status: [200]
+
+- test:
+    - name: "Delete a message from a client"
+    - url: {template: "$uri_prefix/messages/KKhoLJwTd20WAkvDrb9f5Fg0yWw"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser0}}
+    - expected_status: [202]
+
+
+# NOT PASSING
+- test:
+    - name: "Update a message in a chat"
+    - url: {template: "$uri_prefix/messages/TzeTiw5iYT9w9skAuakhkk2gE1z"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser0}}
+    - body: '{
+          "title": "Outside",
+          "body": "Hello from the outside.",
+          "receiver": "",
+          "channel": "testChannel3"
+          }'
+    - expected_status: [200]
+
+
+########################################################################################################################
+## CHANNEL TESTS
+
+# Create channels #
+- test:
+    - name: "Create a public_Channel"
+    - url: {template: "$uri_prefix/channels"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser0}}
+    - body: '{
+         "name": "public_Channel",
+         "description": "Optional channel description",
+         "type": "public",
+         "serviceId": "TestService1"
+      }'
+    - expected_status: [202]
+
+
+
+- test:
+    - name: "Create a public-group_Channel"
+    - url: {template: "$uri_prefix/channels/"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser0}}
+    - body: '{
+         "name": "public-group_Channel",
+         "description": "Optional channel description",
+         "type": "public-group",
+         "serviceId": "TestService1"
+      }'
+    - expected_status: [202]
+
+
+
+- test:
+    - name: "Create a private-group_Channel"
+    - url: {template: "$uri_prefix/channels/"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser0}}
+    - body: '{
+         "name": "private-group_Channel",
+         "description": "Optional channel description",
+         "type": "private-group",
+         "serviceId": "TestService1"
+      }'
+    - expected_status: [202]
+
+
+
+- test:
+    - name: "Create a announcement_Channel"
+    - url: {template: "$uri_prefix/channels/"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser2}}
+    - body: '{
+         "name": "announcement_Channel",
+         "description": "Optional channel description",
+         "type": "announcement",
+         "serviceId": "TestService2"
+      }'
+    - expected_status: [202]
+
+
+
+- test:
+    - name: "Create a private_Channel"
+    - url: {template: "$uri_prefix/channels/"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser3}}
+    - body: '{
+         "name": "private_Channel",
+         "description": "Optional channel description",
+         "type": "private",
+         "serviceId": "TestService3",
+         "sentTime": "2017-08-20T08:54:56.750Z00:00"
+      }'
+    - expected_status: [202]
+
+
+# THE END of Create channels #
+
+
+# List channels by type #
+# NOT PASSING
+
+- test:
+    - name: "List channels by public type"
+    - url: {template: "$uri_prefix/channels?type=public"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser2}}
+    - expected_status: [200]
+
+
+
+- test:
+    - name: "List channels by public-group type"
+    - url: {template: "$uri_prefix/channels?type=public-group"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser3}}
+    - expected_status: [200]
+
+
+
+- test:
+    - name: "List channels by announcement type"
+    - url: {template: "$uri_prefix/channels?type=announcement"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser3}}
+    - expected_status: [200]
+
+
+
+- test:
+    - name: "List channels by private-group type"
+    - url: {template: "$uri_prefix/channels?type=private-group"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser3}}
+    - expected_status: [200]
+
+
+
+- test:
+    - name: "List channels by private type"
+    - url: {template: "$uri_prefix/channels?type=private"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser3}}
+    - expected_status: [200]
+
+# End of List channels by type #
+
+- test:
+    - name: "List channels by private type"
+    - url: {template: "$uri_prefix/channels?type=private"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "Authorization": Token testUser3}}
+    - expected_status: [200]

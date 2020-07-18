@@ -1,0 +1,87 @@
+/* fade in up */
+@include keyFrame(customFadeInUp) {
+  0% {
+    opacity: 0;
+    @include transform(translateY(20px));
+  }
+
+  100% {
+    opacity: 1;
+    @include transform(none);
+  }
+}
+
+.customFadeInUp {
+  -webkit-animation-name: customFadeInUp;
+  animation-name: customFadeInUp;
+  animation-fill-mode: both;
+  -webkit-animation-fill-mode: both;
+
+  @include animationDuration(1s);
+}
+
+@include keyFrame(customFadeInDown) {
+  0% {
+    opacity: 0;
+    @include transform(translateY(-25px))
+  }
+
+  100% {
+    opacity: 1;
+    @include transform(none);
+  }
+}
+
+.customFadeInDown {
+  -webkit-animation-name: customFadeInDown;
+  animation-name: customFadeInDown;
+  animation-fill-mode: both;
+  -webkit-animation-fill-mode: both;
+
+  @include animationDuration(1s);
+}
+
+// fade in & scale
+@include keyFrame(fadeInScale) {
+  0% {
+    opacity: 0;
+    @include transform(scale3d(.89, .89, .89));
+  }
+
+  100% {
+    opacity: 1;
+    @include transform(none);
+  }
+}
+
+.fadeInScale {
+  -webkit-animation-name: fadeInScale;
+  animation-name: fadeInScale;
+  animation-fill-mode: both;
+  -webkit-animation-fill-mode: both;
+
+  @include animationDuration(1s);
+}
+
+
+// fade in scale down
+@include keyFrame(fadeInScaleDown) {
+  0% {
+    opacity: 0;
+    @include transform(scale3d(1.1, 1.1, 1.1));
+  }
+
+  100% {
+    opacity: 1;
+    @include transform(none);
+  }
+}
+
+.fadeInScaleDown {
+  -webkit-animation-name: fadeInScaleDown;
+  animation-name: fadeInScaleDown;
+  animation-fill-mode: both;
+  -webkit-animation-fill-mode: both;
+
+  @include animationDuration(.8s);
+}

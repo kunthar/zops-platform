@@ -1,0 +1,72 @@
+###################################### POSTGRESQL #############################################
+
+- hosts: "{{ postgres_master }}"
+  remote_user: ubuntu
+  gather_facts: yes
+  become: yes
+
+  tasks:
+  - name: add new configuration to "/data/psql/pg_hba.conf"
+    blockinfile:
+      dest: /data/psql/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0           trust
+      state: present
+   
+  - name: add new configuration to "/patroni/psql/pg_hba.conf"
+    blockinfile:
+      dest: /patroni/psql/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0           trust
+      state: present
+    ignore_errors: yes
+
+  - name: reload postgres
+    shell: PGPASSWORD=LuCahN7VpooK8wuziThie0airieG8ede psql -h {{ hostvars[item].ansible_ssh_host }} -U postgres -c  "SELECT pg_reload_conf();"
+    delegate_to: "{{ item }}"
+    with_items:
+      - "{{ postgres_master }}"
+
+  - name: create testing db
+    postgresql_db:
+      name: testing
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      login_password: LuCahN7VpooK8wuziThie0airieG8ede
+      port: 5432
+      state: present
+
+  - name: create tester user for zopsm db
+    postgresql_user:
+      db: testing
+      name: tester
+      encrypted: yes
+      password: aeBo8AiKood9IeWo
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      login_password: LuCahN7VpooK8wuziThie0airieG8ede
+      port: 5432
+      state: present
+
+  - name: add  tester new configuration to "/data/psql/pg_hba.conf"
+    lineinfile:
+      path: /data/psql/pg_hba.conf
+      insertafter: '^# END ANSIBLE MANAGED BLOCK'
+      line: 'host    all             tester             159.69.0.0/24           md5'
+      state: present
+
+  - name: add new configuration to "/patroni/psql/pg_hba.conf"
+    lineinfile:
+      path: /patroni/psql/pg_hba.conf
+      insertafter: '^# END ANSIBLE MANAGED BLOCK'
+      line: 'host    all             tester             159.69.0.0/24           md5'
+      state: present
+    ignore_errors: yes
+
+  - name: reload postgres
+    shell: PGPASSWORD=LuCahN7VpooK8wuziThie0airieG8ede psql -h {{ hostvars[item].ansible_ssh_host }} -U postgres -c  "SELECT pg_reload_conf();"
+    delegate_to: "{{ item }}"
+    with_items:
+      - "{{ postgres_master }}"
+
+#############################################################################################

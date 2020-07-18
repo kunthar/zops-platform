@@ -1,0 +1,178 @@
+###################################### REMOVE POSTGRESQL DB AND USER ##################################
+
+- hosts: "{{ postgres_master }}"
+  remote_user: ubuntu
+  gather_facts: yes
+  become: yes
+
+  tasks:
+  - name: add new configuration to "/data/psql/pg_hba.conf"
+    blockinfile:
+      dest: /data/psql/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0           trust
+      state: present
+
+  - name: add new configuration to "/patroni/psql/pg_hba.conf"
+    blockinfile:
+      dest: /patroni/psql/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0           trust
+      state: present
+
+  - name: reload postgres
+    shell: PGPASSWORD=LuCahN7VpooK8wuziThie0airieG8ede psql -h {{ hostvars[item].ansible_ssh_host }} -U postgres -c  "SELECT pg_reload_conf();"
+    delegate_to: "{{ item }}"
+    with_items:
+      - "{{ postgres_master }}"
+
+  - name: kill connections on testing
+    shell: PGPASSWORD=LuCahN7VpooK8wuziThie0airieG8ede psql -h {{ ansible_default_ipv4.address }} -U postgres -c  "SELECT pg_terminate_backend(pid)
+           FROM pg_stat_activity
+           WHERE datname = 'testing'"
+#  - name: kill connections
+#    shell: psql -h {{ ansible_default_ipv4.address }} -u postgres -c "REVOKE CONNECT ON DATABASE testing FROM public; \
+#           SELECT pid, pg_terminate_backend(pid) \
+#           FROM pg_stat_activity \
+#           WHERE datname = testing AND pid <> pg_backend_pid();"
+
+  - name: remove testing db
+    postgresql_db:
+      name: testing
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      login_password: LuCahN7VpooK8wuziThie0airieG8ede
+      port: 5432
+      state: absent
+    ignore_errors: yes
+
+  - name: remove tester user for zopsm db
+    postgresql_user:
+      db: testing
+      name: tester
+      encrypted: yes
+      password: aeBo8AiKood9IeWo
+      login_host: "{{ ansible_default_ipv4.address }}"
+      login_user: postgres
+      login_password: LuCahN7VpooK8wuziThie0airieG8ede
+      port: 5432
+      state: absent
+    ignore_errors: yes
+
+  - name: remove  tester from /data/psql/pg_hba.conf
+    lineinfile:
+        path: /data/psql/pg_hba.conf
+        line: 'host    all             tester             159.69.0.0/24           md5'
+        state: absent
+
+  - name: remove  tester from /patroni/psql/pg_hba.conf
+    lineinfile:
+        path: /patroni/psql/pg_hba.conf
+        line: 'host    all             tester             159.69.0.0/24           md5'
+        state: absent
+
+  - name: remove trust from /data/psql/pg_hba.conf
+    blockinfile:
+      dest: /data/psql/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0           trust
+      state: absent
+
+  - name: remove trust from /patroni/psql/pg_hba.conf
+    blockinfile:
+      dest: /patroni/psql/pg_hba.conf
+      block: |
+        host    all             all             0.0.0.0/0           trust
+      state: absent
+
+  - name: reload postgres
+    shell: PGPASSWORD=LuCahN7VpooK8wuziThie0airieG8ede psql -h {{ hostvars[item].ansible_ssh_host }} -U postgres -c  "SELECT pg_reload_conf();"
+    delegate_to: "{{ item }}"
+    with_items:
+      - "{{ postgres_master }}"
+
+#############################################################################################
+#
+#
+#
+#
+################################ REMOVE RABBITMQ USER AND VHOST #############################
+
+- hosts: rabbit-01
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: remove vhost testing is absent
+    rabbitmq_vhost: name=testing state=absent
+    ignore_errors: yes
+
+  - name: remove default guest user
+    rabbitmq_user: user=tester state=absent
+    ignore_errors: yes
+
+##############################################################################################
+#
+#
+#
+######################################## REMOVE REDIS DB #####################################
+
+- hosts: redis-01
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: run flusdhDB on testing DB
+    shell: redis-cli -a quohte2AaekipheeDo3E8iWaLieT2iesGoo2ejikIepe4kooooQu6aDauixaiMe0uXaer0Lutie3exnoooR6ahcuXeet5leicoo7Tiehcsa3Tha5whai1OhGAj6yag7AeekoT7aethohJai1Iefie8mu -n ansible_local.testing_zopsm.redis_db ZOPSDB
+    ignore_errors: yes
+
+##############################################################################################
+#
+#
+#
+############################# REMOVE TESTING CONTAINERS ######################################
+
+- hosts: worker-02
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: checkout master branch in zopsm
+    shell: cd /home/ubuntu/zopsm && git checkout master
+    delegate_to: "{{ ansible_default_ipv4.address }}"
+
+  - name: stop and remove worker
+    shell: docker stop {{ ansible_local.testing_zopsm.container.worker }} && docker rm {{ ansible_local.testing_zopsm.container.worker }}
+    ignore_errors: yes
+
+  - name: stop and remove worker1
+    shell: docker stop {{ ansible_local.testing_zopsm.container.worker1 }} && docker rm {{ ansible_local.testing_zopsm.container.worker1 }}
+    ignore_errors: yes
+
+  - name: stop and remove migrater
+    shell: docker stop migrater && docker rm migrater
+    ignore_errors: yes
+
+  - name: stop and remove mda
+    shell: docker stop {{ ansible_local.testing_zopsm.container.mda }} && docker rm {{ ansible_local.testing_zopsm.container.mda }}
+    ignore_errors: yes
+
+  - name: stop and remove gateway
+    shell: docker stop {{ ansible_local.testing_zopsm.container.gateway }} && docker rm {{ ansible_local.testing_zopsm.container.gateway }}
+    ignore_errors: yes
+
+  - name: stop and remove auth
+    shell: docker stop {{ ansible_local.testing_zopsm.container.auth }} && docker rm {{ ansible_local.testing_zopsm.container.auth }}
+    ignore_errors: yes
+
+  - name: stop and remove push
+    shell: docker stop {{ ansible_local.testing_zopsm.container.push }} && docker rm {{ ansible_local.testing_zopsm.container.push }}
+    ignore_errors: yes
+
+  - name: stop and remove saas
+    shell: docker stop {{ ansible_local.testing_zopsm.container.saas }} && docker rm {{ ansible_local.testing_zopsm.container.saas }}
+    ignore_errors: yes
+
+  - name: stop and remove zlogger
+    shell: docker stop {{ ansible_local.testing_zopsm.container.zlogger }} && docker rm {{ ansible_local.testing_zopsm.container.zlogger }}
+    ignore_errors: yes

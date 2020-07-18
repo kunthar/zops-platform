@@ -1,0 +1,19 @@
+// extra mb to the alert headings
+.alert-heading {
+  margin-bottom: .7rem;
+}
+
+// extra alert inverse
+.alert-inverse {
+  background-color: #353434;
+  border-color: #484545;
+  color: #fff;
+}
+
+.alert-inverse hr {
+  border-top-color: #585858;
+}
+
+.alert-inverse .alert-link {
+  color: #fff;
+}

@@ -1,0 +1,14 @@
+{
+  "service": {
+    "name": "rabbitmq",
+    "tags": ["rabbitmq-service"],
+    "address": "172.25.0.111",
+    "port": 5672,
+    "enableTagOverride": false,
+    "checks": [{
+      "tcp": "172.25.0.111:5672",
+      "interval": "10s",
+      "timeout": "1s"
+    }]
+  }
+}

@@ -1,0 +1,35 @@
+.pricing-band{
+  background-color: #F5F5F5;
+  padding: 1px;
+  border-bottom: 1px solid #dadfe5;
+}
+.fine-print__list {
+  margin: 5px 0;
+  padding: 0;
+  padding-left: 10px;
+}
+.fine-print__item {
+  display: inline-block;
+  color: #104C5E;
+  font-weight: 200;
+  font-size: 11px;
+  padding: 0 8px 0 9px;
+  position: relative;
+}
+.guide {
+  background: #F5F5F5;
+  border-right: 1px solid #dadfe5;
+  left: 0;
+  top: 0;
+  position: relative;
+  overflow: hidden;
+  overflow-y: auto;
+  width: 210px;
+  z-index: 25;
+  height: 700px;
+}
+.nav-link {
+  color: #104C5E;
+  font-size: 13px;
+}
+

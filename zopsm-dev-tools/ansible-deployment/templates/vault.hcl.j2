@@ -1,0 +1,12 @@
+storage "consul" {
+  address = "{{ ansible_default_ipv4.address }}:8500"
+  path    = "vault"
+}
+
+listener "tcp" {
+  address             = "{{ ansible_default_ipv4.address }}:8200"
+  tls_cert_file       = "/etc/vault.d/ssl/vault.cert"
+  tls_key_file        = "/etc/vault.d/ssl/vault.key"
+}
+
+plugin_directory = "/etc/vault.d/plugins"

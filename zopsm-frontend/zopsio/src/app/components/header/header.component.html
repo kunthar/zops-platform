@@ -1,0 +1,103 @@
+<div *ngIf="!isUserLoggedIn" class="top-nav position-top-header">
+  <a href="/#" class="top-header-help">Help</a>
+  <a href="/signin" class="top-header-login">Sign In</a>
+</div>
+<div class="navbar navbar-dark bg-transparent navbar-expand-lg" role="banner">
+  <div class="container no-override">
+    <div class="logo navbar-brand">
+      <a *ngIf="!isUserLoggedIn" class="navbar-brand" href="/">
+        <img src="../../../assets/images/zops/zops-logo-header-small.jpeg" class="mr-2 img-fluid"/>
+      </a>
+      <a *ngIf="isUserLoggedIn" class="navbar-brand" href="/dashboard">
+        <img src="../../../assets/images/zops/zops-logo.png" class="mr-2 img-fluid" height="30px" width="50px"/>
+        <img src="../../../assets/images/zops/zops-logo-header-small.jpeg" class="mr-2 img-fluid" height="50px" width="150px"/>
+      </a>
+    </div>
+
+    <button class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse justify-content-end" id="navbar-collapse">
+      <ul class="navbar-nav">
+
+        <li *ngIf="!isUserLoggedIn" class="nav-item dropdown">
+          <a href="/products" class="nav-link">
+            Products
+            <i class="ion-chevron-down"></i>
+          </a>
+          <div class="dropdown-content">
+            <a class="dropdown-item" href="/roc">Realtime Online Chat</a>
+            <a class="dropdown-item" href="/push">PUSH Messages</a>
+            <a class="dropdown-item" href="/m2m">Machine to Machine Messaging</a>
+            <a class="dropdown-item" href="/sms">SMS Messaging</a>
+          </div>
+        </li>
+
+        <li *ngIf="!isUserLoggedIn" class="nav-item dropdown">
+          <a href="/solution" class="nav-link">
+            Solutions
+            <i class="ion-chevron-down"></i>
+          </a>
+          <div class="dropdown-content">
+            <a class="dropdown-item" href="/m2m-hub">m2m-hub</a>
+            <a class="dropdown-item" href="/marketing">marketing</a>
+            <a class="dropdown-item" href="/realtime">realtime</a>
+          </div>
+        </li>
+
+        <li *ngIf="!isUserLoggedIn" class="nav-item dropdown">
+          <a href="/pricing" class="nav-link">
+            Pricing
+            <i class="ion-chevron-down"></i>
+          </a>
+          <!-- <img src="../../..//assets/images/coins.png" class="mr-2 img-fluid" /> -->
+          <div class="dropdown-content">
+            <a class="dropdown-item" href="/roc-pricing">Realtime Online Chat</a>
+            <a class="dropdown-item" href="/push-pricing">PUSH Messages</a>
+            <a class="dropdown-item" href="/m2m-pricing">Machine 2 Machine Messaging</a>
+          </div>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a href="/docs" class="nav-link">
+            Docs
+            <i class="ion-chevron-down"></i>
+          </a>
+          <div class="dropdown-content">
+            <a class="dropdown-item" href="/notfound">API Reference</a>
+            <a class="dropdown-item" href="/quickstart">Quickstarts</a>
+            <a class="dropdown-item" href="/tutorial">Tutorials</a>
+            <a class="dropdown-item" href="/guide">Guides</a>
+            <a class="dropdown-item" href="/#">Blog</a>
+          </div>
+        </li>
+
+        <li *ngIf="!isUserLoggedIn" class="nav-item">
+          <a href="/#" class="btn-shadow nav-link--rounded">Talk to Us</a>
+        </li>
+
+        <li class="nav-item">
+          <a *ngIf="!isUserLoggedIn" href="/signup" class="btn-shadow nav-link--rounded">Sign Up</a>
+          <a *ngIf="isUserLoggedIn" href="/dashboard" class="btn-shadow nav-link--rounded">Dashboard</a>
+        </li>
+
+        <li *ngIf="isUserLoggedIn" class="nav-item dropdown">
+          <div class="nav-item btn-group">
+            <a class="btn-shadow nav-link--rounded" id="userMenuLink"
+               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              {{username}} <i class="ion-arrow-down-b"></i>
+            </a>
+            <div class="dropdown-menu" aria-labelledby="userMenuLink">
+              <a class="dropdown-item" href="/account-settings">Settings</a>
+              <a class="dropdown-item" href="#">Billing</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="\logout">Logout</a>
+            </div>
+          </div>
+        </li>
+
+      </ul>
+    </div>
+  </div>
+</div>

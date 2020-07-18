@@ -1,0 +1,73 @@
+@startuml
+skinparam defaultFontName Monaco
+
+package Push {
+    together {
+        class PushMessage {
+            sender         str  name / tite of sender
+            title          str  message title
+            body           str  message text
+            segment        str  segment_id defined by sender
+            sent_time      str  time of client device, UTC with TZ data
+            language       str  lang
+            icon           str  message icon
+            badge          str  message badge for apn only
+            image          str  message image for gcm only
+            signature      str  checksum of whole message string except
+        }
+
+        class Segment {
+            name       str friendly name of segment
+            residents  str logical expressions that defines the set of targets
+        }
+    }
+
+    class Target {
+        clients                 str  dict of clients
+        push_tags               str  set of combined tags of client's and consumer's tags
+        unsubscribed_projects   str  list of unsubscribed projects
+        saas_consumer_id
+    }
+
+    class Client {
+        push_tags               str  set of combined tags of client's and consumer's tags
+        token                   str  device token on gcm/apn/wms
+        unsubscribed_projects   str  list of unsubscribed projects
+        target_id
+        subscriber_id
+        consumer_id
+        project_id
+    }
+
+    class Tag {
+        name                 str
+        tag_type             str     (key, key_value, multi)
+        value_type           str     (str, int, float)
+        possible_values      dict
+    }
+
+    class DeliveryInfo {
+        message_id    str
+        target_id     str
+        channel (channel)
+        message (str)
+        approve (str, approved, rejected, not_evaluated)
+    }
+
+}
+
+PushMessage <- Segment
+Target <- SaaS.Consumer
+DeliveryInfo -[hidden]--> PushMessage
+
+package SaaS {
+    class Consumer {
+        consumer_id
+    }
+}
+
+
+
+
+
+@enduml

@@ -1,0 +1,94 @@
+[station]
+ansible-station ansible_user=zopsman ansible_ssh_host=159.69.45.165
+
+[redis-slave]
+redis-02 ansible_user=zopsman ansible_ssh_host=195.201.93.5 ansible_port=99
+redis-03 ansible_ssh_host=159.69.45.92 ansible_port=99 ansible_user=zopsman
+
+[redis-master]
+redis-01 ansible_ssh_host=159.69.45.88 ip=159.69.45.88 redis_master=true ansible_port=99 ansible_user=zopsman
+
+[redis:children]
+redis-master
+redis-slave
+
+[riak-leader]
+riak-01 ansible_ssh_host=159.69.35.56 ansible_port=99 ansible_user=zopsman
+
+[riak-join]
+riak-02 ansible_ssh_host=159.69.35.99 ansible_port=99 ansible_user=zopsman
+riak-03 ansible_ssh_host=159.69.35.51 ansible_port=99 ansible_user=zopsman
+riak-04 ansible_ssh_host=159.69.35.69 ansible_port=99 ansible_user=zopsman
+riak-05 ansible_ssh_host=159.69.35.68 ansible_port=99 ansible_user=zopsman
+riak-06 ansible_ssh_host=159.69.35.57 ansible_port=99 ansible_user=zopsman
+riak-07 ansible_ssh_host=159.69.35.77 ansible_port=99 ansible_user=zopsman
+
+[riak:children]
+riak-leader
+riak-join
+
+[rabbit-leader]
+rabbit-01 ansible_ssh_host=159.69.43.203 ansible_port=99 ansible_user=zopsman
+
+[rabbit-join]
+rabbit-02 ansible_ssh_host=159.69.43.170 ansible_port=99 ansible_user=zopsman
+rabbit-03 ansible_ssh_host=159.69.43.183 ansible_port=99 ansible_user=zopsman
+
+[rabbitmq:children]
+rabbit-join
+rabbit-leader
+
+[consul_servers]
+consul-01 ansible_ssh_host=159.69.29.13 ansible_port=99 ansible_user=zopsman
+consul-02 ansible_ssh_host=159.69.45.90 ansible_port=99 ansible_user=zopsman
+consul-03 ansible_ssh_host=159.69.28.82 ansible_port=99 ansible_user=zopsman
+
+[consul_clients]
+load-balancer ansible_ssh_host=159.69.29.47 ansible_port=99 ansible_user=zopsman
+worker-01 ansible_ssh_host=159.69.31.24 ansible_port=99 ansible_user=zopsman
+worker-02 ansible_ssh_host=159.69.31.151 ansible_port=99 ansible_user=zopsman
+worker-03 ansible_ssh_host=159.69.30.243 ansible_port=99 ansible_user=zopsman
+postgres-01 ansible_ssh_host=159.69.27.82 ansible_port=99 ansible_user=zopsman
+postgres-02 ansible_ssh_host=159.69.27.81 ansible_port=99 ansible_user=zopsman
+riak-01 ansible_ssh_host=159.69.35.56 ansible_port=99 ansible_user=zopsman
+riak-02 ansible_ssh_host=159.69.35.99 ansible_port=99 ansible_user=zopsman
+riak-03 ansible_ssh_host=159.69.35.51 ansible_port=99 ansible_user=zopsman
+riak-04 ansible_ssh_host=159.69.35.69 ansible_port=99 ansible_user=zopsman
+riak-05 ansible_ssh_host=159.69.35.68 ansible_port=99 ansible_user=zopsman
+riak-06 ansible_ssh_host=159.69.35.57 ansible_port=99 ansible_user=zopsman
+riak-07 ansible_ssh_host=159.69.35.77 ansible_port=99 ansible_user=zopsman
+rabbit-01 ansible_ssh_host=159.69.43.203 ansible_port=99 ansible_user=zopsman
+rabbit-02 ansible_ssh_host=159.69.43.170 ansible_port=99 ansible_user=zopsman
+rabbit-03 ansible_ssh_host=159.69.43.183 ansible_port=99 ansible_user=zopsman
+redis-01 ansible_ssh_host=159.69.45.88 ansible_port=99  ansible_user=zopsman
+redis-02 ansible_ssh_host=195.201.93.5 ansible_port=99  ansible_user=zopsman
+redis-03 ansible_ssh_host=159.69.45.92 ansible_port=99  ansible_user=zopsman
+
+[consul:children]
+consul_servers
+consul_clients
+
+[workers]
+worker-01 ansible_ssh_host=159.69.31.24 docker=true script_check=true ansible_port=99 ansible_user=zopsman
+worker-02 ansible_ssh_host=159.69.31.151 docker=true script_check=true ansible_port=99 ansible_user=zopsman
+worker-03 ansible_ssh_host=159.69.30.243 docker=true script_check=true ansible_port=99 ansible_user=zopsman
+
+[postgres-master]
+postgres-01 ansible_ssh_host=159.69.27.82 ansible_port=99 ansible_user=zopsman name=postgres-01
+
+[postgres_master]
+postgres-02 ansible_ssh_host=159.69.27.82 ansible_port=99 ansible_user=zopsman 
+
+[postgres-slave]
+postgres-02 ansible_ssh_host=159.69.27.81 ansible_port=99 ansible_user=zopsman name=postgres-02
+
+[postgres:children]
+postgres-master
+postgres-slave
+
+[vault]
+consul-02 ansible_ssh_host=159.69.45.90 ansible_port=99 ansible_user=zopsman name=consul-02
+consul-03 ansible_ssh_host=159.69.28.82 ansible_port=99 ansible_user=zopsman name=consul-03
+
+[haproxy-consul-template]
+load-balancer ansible_ssh_host=159.69.29.47 ansible_port=99 ansible_user=zopsman web=yes

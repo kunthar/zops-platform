@@ -1,0 +1,109 @@
+.btn {
+  padding-top: 100px;
+}
+.button {
+  color: #fff;
+  background: #f12545;
+  padding: 12px 20px;
+  width: auto;
+  font-size: 18px;
+  font-weight: 200;
+  border: none;
+
+}
+
+.button3 {border-radius: 10px;}
+.features-tabs-section{
+  background: #227790;
+  margin-top: 0px;
+  height: 400px;
+}
+.features-tabs{
+  background: #ffffff;
+  margin-top: 0px;
+  height: 800px;
+}
+.features-tabs .header {
+  text-align: center;
+  padding-top: 20px;
+}
+.features-tabs-section .header {
+  text-align: center;
+  padding-top: 80px;
+}
+.features-tabs-section .header .h1 {
+  text-align: center;
+  font-size: 30px;
+}
+.features-tabs-section .header p {
+  font-size: 16px;
+  font-weight: 400;
+  color: #ffffff;
+}
+.product-title{
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  text-transform: uppercase;
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  line-height: 100px;
+  font-size: 75px;
+  color: #ffffff;
+}
+.btn-shadow{
+  text-transform: none;
+  border-radius: 10px;
+}
+.btn-shadow.btn-shadow-success {
+  background: transparent;
+  border: 2px solid #FED231;
+}
+.btn-shadow.btn-shadow-success-roc {
+  background:  #D18C8F;
+}
+.btn-shadow.btn-shadow-success-push {
+  background:  #66AC69;
+}
+.btn-shadow.btn-shadow-success-sms {
+  background:  #3F978D;
+}
+.btn-shadow.btn-shadow-success-m2m {
+  background:  #A7E67D;
+}
+.btn-shadow.btn-shadow-lg-2.api-button{
+  font-size: 15px;
+  font-weight: 300;
+  padding: 10px 20px;
+}
+.btn-shadow.btn-shadow-lg-2 {
+  font-size: 20px;
+  font-weight: 400;
+  padding: 10px 20px;
+}
+.services-grid-section {
+  margin-top: 30px;
+}
+.services-grid-section--border .header {
+  border-top: 1px solid #e6e6e8;
+  padding-top: 70px;
+  padding-bottom: 70px;
+}
+.services-grid-section .header h3 {
+  font-size: 26px;
+  color: #104C5E;
+  line-height: 33px;
+  font-weight: 400;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  padding-top: 30px;
+}
+.products {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -.06em;
+  line-height: 100px;
+  font-size: 30px;
+  color: #104C5E;
+}
+.cta {
+  margin-top: 0px;
+}

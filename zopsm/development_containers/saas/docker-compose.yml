@@ -1,0 +1,68 @@
+# Use postgres/example user/password credentials
+version: '3'
+services:
+    consul:
+        image: consul:0.9.3
+        command: "agent -dev -client=0.0.0.0"
+
+    vault:
+        image: vault:0.11.1
+        cap_add:
+          - IPC_LOCK
+        environment:
+            SKIP_SETCAP: 1
+
+#
+#    riak_single:
+#      image: basho/riak-kv
+#      ports:
+#        - "8087:8087"
+#        - "8098:8098"
+#      environment:
+#        - CLUSTER_NAME=riakkv
+
+    rabbitmq:
+        image: rabbitmq:alpine
+        environment:
+          RABBITMQ_DEFAULT_VHOST: zopsm
+          RABBITMQ_DEFAULT_USER: zopsm
+          RABBITMQ_DEFAULT_PASS: 'chauj5DuXu7Eirirzohl1Eo3dewooNg6'
+
+    cache:
+        image: redis:4.0.11
+        restart: always
+    db:
+        image: postgres:10.5
+        restart: always
+        environment:
+            POSTGRES_PASSWORD: 'ipoo3a'
+            POSTGRES_USER: 'zopsm'
+            POSTGRES_DB: 'zopsm'
+    saas:
+        image: zetaops/zopsm-saas
+        restart: always
+        ports:
+            - 8000:8000
+        environment:
+            REDIS_HOST: "cache"
+            DB_HOST: "db"
+            DB_USER: 'zopsm'
+            DB_PASSWORD: 'ipoo3a'
+            DB_NAME: 'zopsm'
+            DB_PORT: 5432
+            CONSUL_HOST: "consul"
+            SECRET_KEY: 'supersupersecretkey'
+            DOCKER_HOST_IPV4: "saas"
+            CONTAINER_PORT: 8000
+            rabbit_nodes: '{"rabbit@rabbitmq": "rabbitmq"}'
+            VAULT_HOST: "vault"
+        links:
+          - db
+          - cache
+          - consul
+          - rabbitmq
+          - vault
+#          - riak_single
+        volumes:
+          - ${ZOPSM}:/usr/local/lib/python3.6/site-packages/zopsm
+

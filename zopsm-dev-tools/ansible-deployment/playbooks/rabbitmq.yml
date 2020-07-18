@@ -1,0 +1,113 @@
+---
+- hosts: rabbitmq
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: ensure locale is en_US.UTF-8
+    locale_gen:
+      name: en_US.UTF-8
+      state: present
+
+  - name: ensure python-software-properties is installed
+    apt: pkg=python-software-properties state=installed
+
+  - name: add rabbitmq official apt repository
+    apt_repository: repo='deb http://www.rabbitmq.com/debian/ testing main' state=present
+
+  - name: add trusted key
+    apt_key: url=https://www.rabbitmq.com/rabbitmq-release-signing-key.asc state=present
+
+  - name: update trusted keys
+    command: apt-key update
+
+  - name: install package
+    apt:  update_cache=yes name=rabbitmq-server state=installed
+
+  - name: enable rabbitmq_management
+    rabbitmq_plugin: names=rabbitmq_management state=enabled
+
+  - name: ensure vhost zopsm is present
+    rabbitmq_vhost: name=zopsm state=present
+    register: zopsm_vhost
+
+  - name: add zopsm user
+    rabbitmq_user: user=zopsm password=chauj5DuXu7Eirirzohl1Eo3dewooNg6 tags=administrator,zopsm vhost=zopsm configure_priv=.* write_priv=.* read_priv=.* state=present
+    when: zopsm_vhost|succeeded
+
+  - name: remove default guest user
+    rabbitmq_user: user=guest state=absent
+
+  - name: add rabbitnodes to /etc/hosts
+    lineinfile:
+      dest: /etc/hosts
+      line: "{{ hostvars[item].ansible_ssh_host }} {{ hostvars[item].inventory_hostname }}"
+      state: present
+    with_items: "{{ groups['rabbitmq'] }}"
+
+  - name: set_policy zopsm_message on zopsm
+    shell: rabbitmqctl set_policy zopsm_message '.*_message' '{"ha-mode":"exactly","ha-params":2,"ha-sync-mode":"automatic"}' -p zopsm
+    when: zopsm_vhost|succeeded
+
+  - name: set_policy zopsm_rpc on zopsm
+    shell: rabbitmqctl set_policy zopsm_rpc '^rpc_' '{"ha-mode":"exactly","ha-params":2,"ha-sync-mode":"automatic"}' -p zopsm
+    when: zopsm_vhost|succeeded
+
+  - name: copy rabbitmq-server.service to nodes
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/services/rabbitmq-server.service
+      dest: /lib/systemd/system/
+      remote_src: no
+
+  - name: copy rabbitmq-consul.service to nodes
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/services/rabbitmq-consul.service
+      dest: /etc/systemd/system/
+      remote_src: no
+
+  - name: restart rabbitmq-server.service on nodes
+    systemd:
+      state: restarted
+      daemon_reload: yes
+      name: rabbitmq-server
+
+  - name: enable rabbitmq-server.service to start at boot
+    systemd:
+      enabled: yes
+      name: rabbitmq-server
+
+  handlers:
+  - name: restart rabbitmq
+    service: name=rabbitmq-server state=restarted
+  - name: stop rabbitmq
+    service: name=rabbitmq-server state=stopped
+  - name: start rabbitmq
+    service: name=rabbitmq-server state=started
+
+- hosts: rabbit-join
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: read /var/lib/rabbitmq/.erlang.cookie from rabbit-leader
+    shell: cat /var/lib/rabbitmq/.erlang.cookie
+    register: erlangcookie
+    become: true
+    delegate_to:  "{{ hostvars[groups['rabbit-leader'][0]].ansible_ssh_host }}"
+
+  - name: change content of /var/lib/rabbitmq/.erlang.cookie on rabbitmq-join nodes
+    shell: echo "{{ erlangcookie.stdout | replace('\n', '') }}" > /var/lib/rabbitmq/.erlang.cookie
+
+  - name: restart rabbitmq-server.service on rabbit-join nodes
+    systemd:
+      state: restarted
+      name: rabbitmq-server
+
+  - name: run rabbitmqctl stop_app on rabbit-join nodes
+    shell: rabbitmqctl stop_app
+
+  - name: run rabbitmqctl join_cluster on rabbit-join nodes
+    shell:  rabbitmqctl join_cluster rabbit@{{ groups['rabbit-leader'][0] }}
+
+  - name: run rabbitmqctl start_app rabbit-join nodes
+    shell: rabbitmqctl start_app

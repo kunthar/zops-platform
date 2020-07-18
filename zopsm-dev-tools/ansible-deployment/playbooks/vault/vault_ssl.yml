@@ -1,0 +1,50 @@
+---
+- hosts: vault
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: change vault-server config
+    template:
+      src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/templates/vault.hcl.j2
+      dest: /etc/vault.d/config.hcl
+      owner: vault
+      group: vault
+      mode: 0600
+
+  - name: create vault ssl folder
+    file:
+      path: /etc/vault.d/ssl
+      state: directory
+      owner: vault
+      group: vault
+      mode: 0700
+
+  - name: copy ca.cert
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/certs/ca.cert
+      dest: /etc/vault.d/ssl/ca.cert
+      owner: vault
+      group: vault
+      mode: 0600
+
+  - name: copy vault.cert
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/certs/CAbundles/vault/vault.cert
+      dest: /etc/vault.d/ssl/vault.cert
+      owner: vault
+      group: vault
+      mode: 0600
+
+  - name: copy vault.key
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/certs/CAbundles/vault/vault.key
+      dest: /etc/vault.d/ssl/vault.key
+      owner: vault
+      group: vault
+      mode: 0600
+
+  - name: restarted vault.service on nodes
+    systemd:
+      state: restarted
+      name: vault

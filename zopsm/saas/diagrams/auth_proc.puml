@@ -1,0 +1,51 @@
+@startuml
+skinparam ParticipantPadding 30
+skinparam BoxPadding 20
+title Messaging Platform Squence Diagram
+actor Sender
+participant AuthAPP
+participant "OAuth Server" as Oauth
+participant LoadBalancer as LB
+collections "Gateway\nContainers" as GS
+collections "Redis" as Redis
+collections "Message Transfer Agent \nContainers" as MTC
+database RiakCluster as Riak
+participant RabbitCluster as RC
+collections "Message Deliver \nContainers" as MDC
+participant "Websocket LB" as WSLB
+actor Reciver
+
+== Send Message | REST PUT /api/v1/message==
+
+note left: asdfasdfasd asdfasdfa asdfa sdfasdf as n1
+autonumber
+Sender ->  AuthAPP : username / pass
+AuthAPP ->  Oauth : Get TOKEN \ntenant_id \napp_id \nusername \nservice_token
+rnote over Oauth
+ - Check credentials from zopsm.saas Management by
+ **tenant_id, app_id, user_id and service_token**
+ - Generate a token for `username`
+ to authenticate user for **service** of specified **application**
+endrnote
+Oauth ->  Redis : Write this token to cache
+
+Oauth ->  AuthAPP : Return Generated Token
+AuthAPP ->  Sender : Token
+Sender -> LB : REST / Send Message with Token
+LB --> GS : Distrubuted Load
+GS --> Redis : check auth token
+GS <-- Redis : True
+LB <-o GS : check payload structure, \nreturn http status
+GS o-> RC : if message structure is valid, with routing key
+RC o-> MTC : get job from queue by routing key
+MTC --> Redis : Check sender is allowed
+MTC <- Redis : True
+MTC --> Riak : Save DB
+RC <-- Riak : Riak postcommit hook
+RC --> MDC : Message Queue
+MDC <-> WSLB
+WSLB <-> Reciver : if user is online \nvia websocket
+
+||145||
+== Send Message Diagram==
+@enduml

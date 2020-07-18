@@ -1,0 +1,8 @@
+[data-animate] {
+  opacity: 0;
+
+  &.animated,
+  &.animated-end {
+    opacity: 1;
+  }
+}

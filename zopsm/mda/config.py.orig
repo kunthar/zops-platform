@@ -1,0 +1,9 @@
+from zopsm.lib import sd_consul
+from zopsm.lib import sd_redis
+from zopsm.lib import sd_rabbit
+bind = "0.0.0.0:9000"
+loglevel = 'debug'
+workers = 3
+worker_class = 'tornado'
+proc_name = 'mda'
+raw_env = [f'rabbit_nodes={sd_rabbit.watch_rabbit()}', f'redis_slave={sd_redis.watch_redis(single=True)[1]}', f'redis_master={sd_redis.find_redis_role(role="master")}', f'CONSUL_HOST={sd_consul.only_consul_servers[0]}']

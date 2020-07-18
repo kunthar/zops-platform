@@ -1,0 +1,22 @@
+{
+  "bootstrap_expect": 3,
+  "datacenter": "dc1",
+  "data_dir": "/opt/consul-data",
+  "log_level": "INFO",
+  "node_name": "{{ ansible_hostname }}",
+  "server": true,
+  "addresses": {
+    "http": "{{ ansible_default_ipv4.address }}"
+   },
+  "start_join": [{% for server in groups['consul_servers'] | difference(ansible_hostname) %}
+  {{ hostvars[server].ansible_default_ipv4.address | to_json }}{% if not loop.last %},{% endif %}
+  {% endfor %}
+  ],
+  "retry_join": [{% for server in groups['consul_servers'] | difference(ansible_hostname) %}
+  {{ hostvars[server].ansible_default_ipv4.address | to_json }}{% if not loop.last %},{% endif %}
+  {% endfor %}
+  ],
+  "retry_interval": {{ "30s" | to_json }},
+  "retry_max": 6,
+   "bind_addr": "{{ ansible_default_ipv4.address }}"
+}

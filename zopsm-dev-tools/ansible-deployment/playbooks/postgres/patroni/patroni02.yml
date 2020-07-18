@@ -1,0 +1,93 @@
+scope: zopsmp
+name: postgresql0
+
+restapi:
+  listen: 159.69.27.81:8008
+  connect_address: 159.69.27.81:8008
+#  certfile: /etc/ssl/certs/ssl-cert-snakeoil.pem
+#  keyfile: /etc/ssl/private/ssl-cert-snakeoil.key
+#  authentication:
+#    username: username
+#    password: password
+
+consul:
+  host: 159.69.27.81:8500
+
+bootstrap:
+  # this section will be written into Etcd:/<namespace>/<scope>/config after initializing new cluster
+  # and all other cluster members will use it as a `global configuration`
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    master_start_timeout: 300
+    synchronous_mode: true
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        wal_level: hot_standby
+        hot_standby: "on"
+        wal_keep_segments: 8
+        max_wal_senders: 5
+        max_replication_slots: 5
+        wal_log_hints: "on"
+        archive_mode: "on"
+        archive_timeout: 1800s
+        archive_command: mkdir -p ../wal_archive && test ! -f ../wal_archive/%f && cp %p ../wal_archive/%f
+      recovery_conf:
+        restore_command: cp ../wal_archive/%f %p
+
+  # some desired options for 'initdb'
+  initdb:  # Note: It needs to be a list (some options need values, others are switches)
+  - encoding: UTF8
+  - data-checksums
+
+  pg_hba:  # Add following lines to pg_hba.conf after running 'initdb'
+  - host replication zopsm_replicator 159.69.27.82/0 md5
+  - host replication zopsm_replicator 159.69.27.81/0 md5
+  - host all all 0.0.0.0/0 md5
+#  - hostssl all all 0.0.0.0/0 md5
+
+  # Additional script to be launched after initial cluster creation (will be passed the connection URL as parameter)
+# post_init: /usr/local/bin/setup_cluster.sh
+
+  # Some additional users users which needs to be created after initializing new cluster
+  users:
+    zadmin:
+      password: yieb3AeysahjiuP7Te1yahGhaiNg2aiz
+      options:
+        - createrole
+        - createdb
+    bb_zops:
+      password: Eng5rie4Ach5ooghkei9xeeMiWee0Eex
+    zopsm:
+      password: gS2vvPu6ST552CnR8qk8zJShmcnqz73pZCPVbI9hQJu89CQLbJfxdJnW4GWuyoDgWNA
+
+postgresql:
+  listen: 159.69.27.81:5432
+  connect_address: 159.69.27.81:5432
+  data_dir: /data/psql
+  bin_dir: /usr/lib/postgresql/10/bin/
+#  config_dir:
+  pgpass: /tmp/pgpass
+  authentication:
+    replication:
+      username: replicator
+      password: gohw2LohNoeJee1sEexo7ahvQuoh0Aid
+    superuser:
+      username: postgres
+      password: LuCahN7VpooK8wuziThie0airieG8ede
+  parameters:
+    unix_socket_directories: '.'
+
+watchdog:
+  mode: automatic # Allowed values: off, automatic, required
+  device: /dev/watchdog
+  safety_margin: 5
+
+tags:
+    nofailover: false
+    noloadbalance: false
+    clonefrom: false

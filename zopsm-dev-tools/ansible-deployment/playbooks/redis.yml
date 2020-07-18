@@ -1,0 +1,156 @@
+---
+- hosts: redis
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: ensure locale is en_US.UTF-8
+    locale_gen:
+      name: en_US.UTF-8
+      state: present
+
+  - name: ensure python-software-properties is installed
+    apt: pkg=python-software-properties state=installed
+
+  - name: ensure pip is installed
+    apt: pkg=python-pip state=installed
+ 
+  - name: export LC_ALL, --upgrade setuptools
+    shell: bash export LC_ALL=C; pip install --upgrade setuptools
+
+  - name: install redis python module
+    pip:
+      name: redis
+
+  - name: install redis-server
+    apt: name=redis-server update_cache=yes state=installed
+
+  - name: change redis config
+    lineinfile:
+       path: /etc/redis/redis.conf
+       regexp: '^bind 127\.0\.0\.1$'
+       line: 'bind 0.0.0.0'
+    notify:
+    - restart redis-server
+
+  - name: copy redis-server.service to nodes
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/services/redis-server.service
+      dest: /lib/systemd/system/
+      remote_src: no
+
+  - name: copy redis-consul.service to nodes
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/services/redis-consul.service
+      dest: /etc/systemd/system/
+      remote_src: no
+
+  - name: change ownership /etc/redis
+    file:
+      state: directory
+      path: /etc/redis
+      owner: redis
+      group: redis
+      mode: 0700
+
+  - name: change ownership /etc/redis/redis.conf
+    file:
+      path: /etc/redis/redis.conf
+      owner: redis
+      group: root
+      mode: 0600
+
+  - name: restart redis-server.service on nodes
+    systemd:
+      state: restarted
+      daemon_reload: yes
+      name: redis-server
+
+  - name: enable redis-server.service to start at boot
+    systemd:
+      enabled: yes
+      name: redis-server
+
+  handlers:
+  - name: restart redis-server
+    service: name=redis-server state=restarted
+
+- hosts: redis-master
+  remote_user: root
+  become: yes
+
+  tasks:
+  - name: become redis-master
+    redis:
+      command: slave
+      slave_mode: master
+
+  - name: requirepass for auth
+    lineinfile:
+      path: /etc/redis/redis.conf
+      line: requirepass quohte2AaekipheeDo3E8iWaLieT2iesGoo2ejikIepe4kooooQu6aDauixaiMe0uXaer0Lutie3exnoooR6ahcuXeet5leicoo7Tiehcsa3Tha5whai1OhGAj6yag7AeekoT7aethohJai1Iefie8mu
+
+  - name: rename dangerous commands
+    blockinfile:
+      path: /etc/redis/redis.conf
+      block: |
+        rename-command FLUSHDB ""
+        rename-command FLUSHALL ""
+        rename-command DEBUG ""
+        rename-command CONFIG ""
+        rename-command SHUTDOWN SHUTDOWNONITBEYBE
+
+  - name: restart redis-server.service on nodes
+    systemd:
+      state: restarted
+      daemon_reload: yes
+      name: redis-server
+
+
+- hosts: redis-slave
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: masterauth for auth
+    lineinfile:
+      path: /etc/redis/redis.conf
+      line: masterauth quohte2AaekipheeDo3E8iWaLieT2iesGoo2ejikIepe4kooooQu6aDauixaiMe0uXaer0Lutie3exnoooR6ahcuXeet5leicoo7Tiehcsa3Tha5whai1OhGAj6yag7AeekoT7aethohJai1Iefie8mu
+
+  - name: become redis-slave
+    lineinfile:
+      path: /etc/redis/redis.conf
+      line: slaveof "{{ hostvars[groups['redis-master'][0]].ansible_ssh_host }}" 6379
+
+  - name: rename dangerous commands
+    blockinfile:
+      path: /etc/redis/redis.conf
+      block: |
+        rename-command FLUSHDB ZOPSDB
+        rename-command FLUSHALL ""
+        rename-command DEBUG ""
+        rename-command CONFIG ""
+        rename-command SHUTDOWN SHUTDOWNONITBEYBE
+
+  - name: create /etc/systemd/system/redis-consul.service.d if it doesn't exist
+    file:
+      path: /etc/systemd/system/redis-consul.service.d
+      state: directory
+
+  - name: create /etc/systemd/system/redis-consul.service.d/custom.conf
+    file:
+      path: /etc/systemd/system/redis-consul.service.d/custom.conf
+      state: touch
+
+  - name: modify redis-consul.service to add CONSUL_HTTP_ADDR environment variable to redis-consul user's environment
+    blockinfile:
+      path: /etc/systemd/system/redis-consul.service.d/custom.conf
+      block: |
+        [Service]
+        Environment=CONSUL_HTTP_ADDR={{ ansible_default_ipv4.address }}:8500
+
+  - name: restart redis-server.service on nodes
+    systemd:
+      state: restarted
+      daemon_reload: yes
+      name: redis-server

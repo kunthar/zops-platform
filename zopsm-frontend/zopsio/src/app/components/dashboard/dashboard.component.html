@@ -1,0 +1,127 @@
+<app-header-dashboard [projectId]="projectId"></app-header-dashboard>
+
+<div *ngIf="projectId == undefined" class="session-page">
+  <div class="container">
+
+    <div class="row">
+
+      <div *ngFor="let p of projectsList; index as i" class="col-md-6" style="padding: 2rem;">
+        <div class="card w-100">
+          <div class="card-block" style="padding: 1rem; background-color: #ffffff; box-shadow: 0 2px 3px 1px #d1d1d1;">
+            <div class="col-md-12 ">
+              <img src="../../../assets/images/zops/icons/i.png" class="mr-2 img-fluid" height="25px" width="20px"/>
+              <span style="color: #0B4C5F">Project Info</span>
+            </div>
+            <hr>
+            <p class="card-title"><span style="color: #999">name : </span> <span class="project-card">{{p.name}}</span>
+            </p>
+            <p class="card-text"><span style="color: #999">description : </span> <span class="project-card">{{p.description}}</span>
+            </p>
+            <p class="card-text"><span style="color: #999">id : </span> <span class="project-card"> {{p.id}}</span></p>
+            <a href="/dashboard/{{p.id}}" class="btn btn-outline-dark" style="color: #0B4C5F">Go to Project</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6" style="padding: 2rem;">
+        <div class="card w-75 text-center">
+          <div class="card-block" style="padding: 1rem; background-color: #ffffff;">
+            <h4 class="card-title">
+              <a href="/dashboard/new-project" class="ion-plus-circled" style="color: #0B4C5F; text-decoration: none">
+                New Project</a>
+            </h4>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<div *ngIf="newProject && !isProjectSelected" class="session-page">
+  <div class="container">
+
+    <br/>
+    <div *ngIf="createProjectAndService && projectId != undefined" class="alert alert-success alert-dismissible fade show"
+         role="alert">
+      <h4 class="alert-heading">Project creation is successful!</h4>
+    </div>
+
+    <any-error [show]="anyError"></any-error>
+
+    <div *ngIf="reachedProjectLimit" class="alert alert-danger alert-dismissible fade show" role="alert">
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+      <h4 class="alert-heading">Opps!</h4>
+      <p>You have reached your project limit!</p>
+    </div>
+
+    <div class="wrapper">
+      <div class="formy">
+        <form role="form" (ngSubmit)="f.form.valid && createProject(f)" #f="ngForm" novalidate>
+
+          <div class="form-group">
+            <label for="projectName">Project Name</label>
+            <input type="text" class="form-control" id="projectName" maxlength="70"
+                   name="projectName" #projectName="ngModel" ngModel required/>
+
+            <show-errors [isFormSubmitted]="f.submitted" [control]="projectName"></show-errors>
+          </div>
+
+          <div class="form-group">
+            <label for="projectDesc">Project Description</label>
+            <textarea cols="40" rows="4" class="form-control" id="projectDesc" maxlength="200"
+                      name="projectDesc" #projectDesc="ngModel" ngModel required></textarea>
+
+            <show-errors [isFormSubmitted]="f.submitted" [control]="projectDesc"></show-errors>
+          </div>
+
+          <div class="form-group" style="column-count: 2;" *ngFor="let s of defaultServiceInfo; index as i">
+            <div *ngIf="i < 2" class="checkbox">{{s.name}}</div>
+            <div *ngIf="i < 2" style="text-align: right;">
+              <label><input type="checkbox" name={{s.codeName}} [(ngModel)]="s.active" ngModel/></label>
+            </div>
+          </div>
+
+          <div class="text-center mt-4">
+            <button [disabled]="loading" type="submit" class="submit btn-block btn-shadow btn-shadow-info">
+              <i *ngIf="loading" class="fa fa-spinner fa-spin"></i> Create Project
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+    <br>
+
+  </div>
+</div>
+
+<div *ngIf="!newProject && isProjectSelected" class="session-page" style="padding: 2rem;">
+  <div class="container">
+    <div class="card w-100">
+      <div class="card-block" style="padding: 1rem; background-color: #ffffff">
+        <p class="card-title"><span style="color: #999">project name : </span> <span class="project">{{name}}</span></p>
+        <hr>
+        <p class="card-text"><span style="color: #999">project description : </span> <span class="project">{{description}}</span>
+        </p>
+        <p class="card-text"><span style="color: #999">project id : </span> <span class="project">{{id}}</span></p>
+        <p class="card-text"><span style="color: #999">active services : </span> <span
+          class="project">{{services}}</span></p>
+        <p class="card-text"><span style="color: #999">user limit : </span> <span class="project">{{userLimit}}</span>
+        </p>
+        <p class="card-text"><span style="color: #999">user used : </span> <span class="project">{{userUsed}}</span></p>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!--<div *ngIf="isProjectSelected && !newProject" class="session-page">
+  <div class="container">
+    <h1>{{name}}</h1>
+    <button class="btn btn-outline-danger" (click)="deleteAccount()">Delete Account</button>
+  </div>
+</div> -->

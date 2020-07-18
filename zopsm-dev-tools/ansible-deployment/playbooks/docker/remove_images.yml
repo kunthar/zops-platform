@@ -1,0 +1,15 @@
+---
+- hosts: workers
+  remote_user: root
+  become: yes
+
+  tasks:
+  - name: remove all images
+    shell: docker rmi "{{ item }}"
+    with_items:
+      - zetaops/zopsm-base
+      - zetaops/zmta
+      - zetaops/auth
+      - zetaops/mda
+      - zetaops/gw
+      - zetaops/push

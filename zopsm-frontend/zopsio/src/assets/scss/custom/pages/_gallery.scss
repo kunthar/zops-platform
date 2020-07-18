@@ -1,0 +1,133 @@
+.gallery-hero {
+  margin-top: 100px; 
+
+  h1 {
+    color: #333;
+    text-align: center;
+    font-size: 28px;
+    font-weight: 500;
+
+    @media(max-width: 767px) {
+      font-size: 26px;
+    }
+  }
+
+  p {
+    margin-top: 13px;
+    text-align: center;
+    font-size: 17px;
+    color: #777;
+  }
+}
+
+.gallery-portfolio {
+  margin: 80px auto 0;
+  text-align: center;
+  max-width: 1400px;
+
+  .project {
+    overflow: hidden;
+    position: relative;
+    display: block;
+    margin: 5px;
+
+    &:hover {
+      .mask {
+        opacity: 1;
+
+        .info {
+          @include transform(none);
+        }
+
+        .btn-see-project {
+          @include transform(none);
+        }
+      }
+
+      .pic {
+        @include transform(scale3d(1.1, 1.1, 1.1));
+      }
+    }
+
+    .mask {
+      display: block;
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      background: rgba(68, 101, 144, 0.9);
+      opacity: 0;
+      z-index: 9;
+      color: #fff;
+      text-align: center;
+
+      @include transition(all .35s ease);
+
+      .info {
+        display: block;
+        @include transform(translateY(-8px));
+        @include transition(all .35s ease);
+      }
+
+      h3 {
+        margin-top: 70px;
+        font-size: 23px;
+      }
+
+      p {
+        color: #BFCEEC;
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .btn-see-project {
+        display: inline-block;
+        margin-top: 30px;
+        border: 1px solid #fff;
+        padding: 9px 16px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        font-weight: 600;
+        font-size: 12px;
+        letter-spacing: 0.8px;
+
+        @include transform(translateY(8px));
+        @include transition(all .35s ease);
+      }
+    }
+
+    .pic {
+      display: block;
+      background-size: cover;
+      background-position: center center;
+      height: 280px;
+      width: 100%;
+      float: left;
+
+      @include transition(all .35s ease);
+    }
+  }
+}
+
+.gallery-cta {
+  margin-top: 100px;
+  text-align: center;
+  margin-bottom: -50px;
+
+  h3 {
+    font-size: 28px;
+    color: #4a5969;
+
+    @media(max-width: 767px) {
+      font-size: 25px;
+    }
+  }
+
+  p {
+    font-size: 16px;
+    color: #7B899E;
+    margin-top: 18px;
+    line-height: 28px;
+  }
+}

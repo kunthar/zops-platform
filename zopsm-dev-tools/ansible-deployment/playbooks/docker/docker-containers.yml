@@ -1,0 +1,285 @@
+- hosts: workers
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: ensure python-software-properties is installed
+    apt: pkg=python-software-properties state=installed
+
+  - name: ensure pip is installed
+    apt: pkg=python-pip state=installed
+
+  - name: install python-consul python module
+    pip:
+      name: python-consul
+
+#  - name: cd into /home/ubuntu/zopsm and get the latest commit
+#    shell: cd /buildbot/container_builder/build/zopsm && git rev-parse --short HEAD
+#    delegate_to: localhost
+#    register: latest_commit
+#
+  - name: cd into /home/ubuntu/zopsm and get the latest commit
+    shell: cd /home/ubuntu/zopsm && git rev-parse --short HEAD
+    register: latest_commit
+
+  - import_tasks: docker-images.yml
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: create local facts folder
+    file:
+      path: /etc/ansible/facts.d
+      state: directory
+      mode: 0755
+
+  - name: create local facts zopsm.fact
+    file:
+      path: /etc/ansible/facts.d/zopsm.fact
+      state: touch
+
+  - name: set container names
+    set_fact:
+      gateway: "gateway{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      gateway_port: "{{ 15000 | random(start=10000)}}"
+      auth: "auth{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      auth_port: "{{ 20000 | random(start=15001)}}"
+      worker: "worker{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      mda: "mda{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      mda_port: "{{ 25000 | random(start=20001)}}"
+      push: "push{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      push_port: "{{ 30000 | random(start=25001)}}"
+      saas: "saas{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      saas_port: "{{ 35000 | random(start=30001)}}"
+      nginx: "nginx{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      nginx_port: "{{ 65000 | random(start=35001)}}"
+      push_docs: "push_docs{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      roc_docs: "roc_docs{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      saas_docs: "saas_docs{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      tests: "tests{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      zlogger: "zlogger{{ 1000 |random }}_{{ latest_commit.stdout }}"
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: run zlogger container
+    docker_container:
+      name: "{{ zlogger }}"
+      image: zetaops/zlogger
+      api_version: 1.32
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "production"
+      state: started
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: run gateway container
+    docker_container:
+      name: "{{ gateway }}"
+      state: started
+      image: zetaops/gw
+      api_version: 1.32
+      ports:
+        - "{{ gateway_port }}:8888"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ gateway }}"
+         CONTAINER_PORT: "{{ gateway_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "production"
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: run push container
+    docker_container:
+      name: "{{ push }}"
+      image: zetaops/push
+      api_version: 1.32
+      ports:
+        - "{{ push_port }}:9500"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ push }}"
+         CONTAINER_PORT: "{{ push_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "production"
+      state: started
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: run auth container
+    docker_container:
+      name: "{{ auth }}"
+      image: zetaops/auth
+      api_version: 1.32
+      ports:
+        - "{{ auth_port }}:8000"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ auth }}"
+         CONTAINER_PORT: "{{ auth_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "production"
+      state: started
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: run mda container
+    docker_container:
+      name: "{{ mda }}"
+      image: zetaops/mda
+      api_version: 1.32
+      ports:
+        - "{{ mda_port }}:9000"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ mda }}"
+         CONTAINER_PORT: "{{ mda_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "production"
+      state: started
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: run worker container
+    docker_container:
+      name: "{{ worker }}"
+      image: zetaops/zmta
+      api_version: 1.32
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ worker }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "production"
+      state: started
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: run saas container
+    docker_container:
+      name: "{{ saas }}"
+      image: zetaops/saas
+      api_version: 1.32
+      ports:
+        - "{{ saas_port }}:10000"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ saas }}"
+         CONTAINER_PORT: "{{ saas_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         DB_HOST: "{{ hostvars[groups['postgres'][0]].ansible_ssh_host }}"
+         DB_USER: 'zopsm'
+         DB_PASSWORD: 'ZeiXier2aquoh1Cipoo3aiG5go7PhooYPeerach3'
+         DB_NAME: 'zopsm'
+         DB_PORT: '5432'
+         SECRET_KEY: 'gS2vvPu6ST552CnR8qk8zJShmcnqz73pZCPVbI9hQJu89CQLbJfxdJnW4GWuyoDgWNA'
+         WORKING_ENVIRONMENT: "production"
+      state: started
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: create zopsm_docs folder
+    file:
+      dest: /opt/zopsm_docs/dist
+      state: directory
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: create nginx status file for consul check
+    file:
+      dest: /opt/zopsm_docs/dist/status
+      state: touch
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: copy index.html
+    copy:
+      src: /Users/cem/projects/zopsmm/zopsm/docs/doc.zops.io/index.html
+      dest: /opt/zopsm_docs/dist
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: get bootstrap.min.js
+    copy:
+      src: /Users/cem/projects/zopsmm/zopsm/docs/doc.zops.io/bootstrap.min.js
+      dest: /opt/zopsm_docs/dist
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: get bootstrap.min.css
+    copy:
+      src: /Users/cem/projects/zopsmm/zopsm/docs/doc.zops.io/bootstrap.min.css
+      dest: /opt/zopsm_docs/dist
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: run push docs container
+    docker_container:
+      name: "{{ push_docs }}"
+      image: zetaops/zopsm_docs
+      api_version: 1.32
+      command: "push"
+      cleanup: yes
+      volumes:
+        - "/opt/zopsm_docs:/zopsm_docs"
+      state: started
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: run roc docs container
+    docker_container:
+      name: "{{ roc_docs }}"
+      image: zetaops/zopsm_docs
+      api_version: 1.32
+      command: "roc"
+      cleanup: yes
+      volumes:
+        - "/opt/zopsm_docs:/zopsm_docs"
+      state: started
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: run saas docs container
+    docker_container:
+      name: "{{ saas_docs }}"
+      image: zetaops/zopsm_docs
+      api_version: 1.32
+      command: "saas"
+      cleanup: yes
+      volumes:
+        - "/opt/zopsm_docs:/zopsm_docs"
+      state: started
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: run nginx container
+    docker_container:
+      name: "{{ nginx }}"
+      image: "nginx:stable-alpine"
+      api_version: 1.32
+      volumes:
+        - "/opt/zopsm_docs/dist:/usr/share/nginx/html:ro"
+      ports:
+        - "{{ nginx_port }}:80"
+      state: started
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - name: register nginx with an http check
+    consul:
+      host: "{{ ansible_default_ipv4.address }}"
+      service_name: nginx
+      service_id: "{{ nginx }}"
+      service_address: "{{ ansible_default_ipv4.address }}"
+      service_port: "{{ nginx_port }}"
+      interval: 60s
+      check_name: nginx
+      check_id: "{{ nginx }}"
+      http: http://{{ ansible_default_ipv4.address }}:{{ nginx_port }}/status
+      state: present
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+
+  - import_tasks: remove_containers.yml
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )
+    ignore_errors: yes
+
+  - name: write /etc/ansible/facts.d/zopsm.fact
+    blockinfile:
+      dest: /etc/ansible/facts.d/zopsm.fact
+      block: |
+        [container]
+        hash={{ latest_commit.stdout }}
+        gateway={{ gateway }}
+        auth={{ auth }}
+        worker={{ worker }}
+        mda={{ mda }}
+        push={{ push }}
+        saas={{ saas }}
+        push_docs={{ push_docs }}
+        roc_docs={{ roc_docs }}
+        nginx={{ nginx }}
+        tests={{ tests }}
+        zlogger={{ zlogger }}
+      state: present
+    when: not ( ansible_local.zopsm.container.hash  == latest_commit.stdout )

@@ -1,0 +1,113 @@
+// B4 dropdown
+
+.dropdown-menu {
+  font-size: 0.9rem;
+
+  @media(min-width: 992px) {
+    display: block;
+    opacity: 0;
+    visibility: hidden;
+    z-index: 1;
+
+    @include transform(translateY(8px));
+    @include transition(all .3s);
+  }
+
+  &.dropdown-menu-dark {
+    background: #282f37 !important;
+    border-color: #242a31 !important;
+
+    .dropdown-item {
+      color: #dadada !important;
+
+      &:hover,
+      &:active,
+      &:focus {
+        color: #fff !important;
+        background: #31353e !important;
+      }
+    }
+
+    .dropdown-divider {
+      border-top: 1px solid #191e23;
+    }
+  }
+}
+
+.show>.dropdown-menu {
+  @media(min-width: 992px) {
+    opacity: 1;
+    visibility: visible;
+    z-index: 1000;
+
+    @include transform(none);
+  }
+}
+
+.navbar .dropdown-toggle::after {
+  display: none;
+}
+
+
+// .dropdown-submenu new class for submenus
+
+.dropdown-submenu {
+  .dropdown-toggle {
+    i {
+      font-size: 10px;
+      position: absolute;
+      right: 14px;
+      top: 8px;
+      color: #a3a7bd;
+    }
+  }
+
+  @media(max-width: 991px) {
+    .dropdown-menu {
+      border-color: #e8e8e8;
+
+      .dropdown-item {
+        padding-left: 2rem;
+      }
+    }
+  }
+
+  @media(min-width: 992px) {
+    .dropdown-menu {
+      left: 98%;
+      top: -2px;
+      border-radius: 0.25rem !important;
+    }
+  }
+}
+
+
+// .dropdown-extend new class for bigger menus
+
+.dropdown-extend {
+  position: initial;
+}
+
+.dropdown-extend-menu {
+  width: 100%;
+
+  @media(min-width: 768px) {
+    padding: 20px 30px;
+  }
+
+  .dropdown-item {
+    @media(min-width: 768px) {
+      margin: 5px 0;
+    }
+
+    i {
+      margin-right: 3px;
+      font-size: 14px;
+      color: #6b7386;
+
+      @media(max-width: 767px) {
+        display: none;
+      }
+    }
+  }
+}

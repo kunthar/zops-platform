@@ -1,0 +1,73 @@
+---
+- hosts: consul_servers
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: ensure locale is en_US.UTF-8
+    locale_gen:
+      name: en_US.UTF-8
+      state: present
+
+  - name: ensure python-software-properties is installed
+    apt: pkg={{ item }} state=installed update_cache=yes
+    with_items:
+     - python-software-properties
+     - python-pip
+
+  - name: pip install python-consul
+    pip:
+     name: python-consul
+     state: latest
+
+  - name: copy consul-instaler.sh script to nodes /tmp
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/services/consul-installer.sh
+      dest: /tmp/consul-installer.sh
+      mode: 0700
+
+  - name: run /tmp/consul-installer.sh for servers
+    shell: bash /tmp/consul-installer.sh server true 1.2.0
+
+  - name: create /etc/systemd/system/consul.service.d if it doesn't exist
+    file:
+      path: /etc/systemd/system/consul.service.d
+      state: directory
+
+  - name: create /etc/systemd/system/consul.service.d/custom.conf
+    file:
+      path: /etc/systemd/system/consul.service.d/custom.conf
+      state: touch
+
+  - name: modify consul.service to add DOCKER_HOST environment variable to consul user's environment
+    blockinfile:
+      path: /etc/systemd/system/consul.service.d/custom.conf
+      block: |
+        [Service]
+        Environment=DOCKER_HOST=tcp://{{ hostvars[groups['workers'][0]].ansible_ssh_host }}:2375
+        Environment=CONSUL_HTTP_ADDR={{ ansible_default_ipv4.address }}:8500
+
+  - name: restart consul.service on nodes
+    systemd:
+      state: restarted
+      daemon_reload: yes
+      name: consul
+
+  - name: change consul-server config
+    template:
+      src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/templates/consul-server.json.j2
+      dest: /etc/consul.d/server.json
+      owner: consul
+      group: consul
+      mode: 0600
+
+  - name: stop consul.service on nodes
+    systemd:
+      state: stopped
+      name: consul
+
+  - name: start consul.service on nodes
+    systemd:
+      state: started
+      name: consul
+

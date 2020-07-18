@@ -1,0 +1,317 @@
+################################ RABBITMQ #################################################
+
+- hosts: rabbit
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: ensure vhost testing is present
+    rabbitmq_vhost: name=testing state=present
+    ignore_errors: yes
+
+  - name: add zopsm user
+    rabbitmq_user: user=tester password=deij3oD7eith2nuVheiseiV1 tags=administrator,tester vhost=testing configure_priv=.* write_priv=.* read_priv=.* state=present
+    ignore_errors: yes
+
+#############################################################################################
+#
+#
+#
+#
+################################ RIAK #####################################################
+
+- hosts: riak
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: create testing_rabbit_hook bucket-type
+    shell: riak-admin bucket-type create testing_rabbit_hook '{"props":{"backend":"buckets_with_30d_ttl","postcommit":[{"mod":"riak_rabbitmq","fun":"postcommit_send_amqp"}]}}'
+    ignore_errors: yes
+
+  - name: activate hook bucket-type
+    shell: riak-admin bucket-type activate testing_rabbit_hook
+    ignore_errors: yes
+
+  - name: create testing_logs bucket-type
+    shell: riak-admin bucket-type create testing_logs '{"props":{"backend":"buckets_with_7d_ttl"}}'
+    ignore_errors: yes
+
+  - name: activate testing_logs bucket-type
+    shell: riak-admin bucket-type activate testing_logs
+    ignore_errors: yes
+
+  - name: create testing_zopsm bucket-type
+    shell: riak-admin bucket-type create testing_zopsm '{"props":{"backend":"buckets_with_no_ttl"}}'
+    ignore_errors: yes
+
+  - name: activate hook bucket-type
+    shell: riak-admin bucket-type activate testing_zopsm
+    ignore_errors: yes
+
+#############################################################################################
+#
+#
+#
+#
+############################# TESTING CONTAINERS #################################################
+
+- hosts: localhost
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: cd into /home/ubuntu/zopsm and get the latest commit
+    shell: cd /buildbot/testing_container_builder/build/zopsm && git rev-parse --short HEAD
+    delegate_to: localhost
+    register: latest_commit
+
+  - name: create local facts folder
+    file:
+      path: /etc/ansible/facts.d
+      state: directory
+      mode: 0755
+
+  - name: create local facts testing_zopsm.fact
+    file:
+      path: /etc/ansible/facts.d/testing_zopsm.fact
+      state: touch
+
+  - name: set container names
+    set_fact:
+      gateway: "testing_gateway{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      gateway_port: "9999"
+      auth: "testing_auth{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      auth_port: "9998"
+      worker: "testing_worker{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      mda: "testing_mda{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      mda_port: "9997"
+      push: "testing_push{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      push_port: "9996"
+      saas: "testing_saas{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      saas_port: "9995"
+      zlogger: "testing_zlogger{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      redis_db: "5"
+      vault_token: "{{ lookup('env', 'VAULT_TESTING_TOKEN') }}"
+
+
+  - name: write /etc/ansible/facts.d/testing_zopsm.fact
+    blockinfile:
+      dest: /etc/ansible/facts.d/testing_zopsm.fact
+      block: |
+        [container]
+        gateway={{ gateway }}
+        auth={{ auth }}
+        worker={{ worker }}
+        mda={{ mda }}
+        push={{ push }}
+        saas={{ saas }}
+        zlogger={{ zlogger }}
+        redis_db={{ redis_db }}
+      state: present
+
+  - name: create dict from vault group
+    set_fact:
+       vault_host_ip: "{{ vault_host_ip|default({}) | combine( {hostvars[item].name + '.vault': hostvars[item].ansible_ssh_host} ) }}"
+    with_items: "{{ groups['vault'] }}"
+
+  - name: run zlogger container
+    docker_container:
+      name: "{{ zlogger }}"
+      image: zetaops/zlogger
+      api_version: 1.32
+      restart_policy: unless-stopped
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "testing"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+      networks:
+      - name: zops
+        ipv4_address: "172.25.0.220"
+      state: started
+
+  - name: run gateway container
+    docker_container:
+      name: "{{ gateway }}"
+      image: zetaops/gw
+      api_version: 1.32
+      restart_policy: unless-stopped
+      ports:
+        - "{{ gateway_port }}:8888"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip }}"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ gateway }}"
+         CONTAINER_PORT: "{{ gateway_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "testing"
+         VAULT_TESTING_TOKEN: "{{ vault_token }}"
+         REDIS_DB: "{{ redis_db }}"
+      networks:
+      - name: zops
+        ipv4_address: "172.25.0.221"
+      state: started
+
+  - name: run push container
+    docker_container:
+      name: "{{ push }}"
+      image: zetaops/push
+      api_version: 1.32
+      restart_policy: unless-stopped
+      ports:
+        - "{{ push_port }}:9500"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip }}"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ push }}"
+         CONTAINER_PORT: "{{ push_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "testing"
+         VAULT_TESTING_TOKEN: "{{ vault_token }}"
+         REDIS_DB: "{{ redis_db }}"
+      networks:
+      - name: zops
+        ipv4_address: "172.25.0.222"
+      state: started
+
+  - name: run auth container
+    docker_container:
+      name: "{{ auth }}"
+      image: zetaops/auth
+      api_version: 1.32
+      restart_policy: unless-stopped
+      ports:
+        - "{{ auth_port }}:8000"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ auth }}"
+         CONTAINER_PORT: "{{ auth_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "testing"
+         REDIS_DB: "{{ redis_db }}"
+      networks:
+      - name: zops
+        ipv4_address: "172.25.0.223"
+      state: started
+
+  - name: run mda container
+    docker_container:
+      name: "{{ mda }}"
+      image: zetaops/mda
+      api_version: 1.32
+      restart_policy: unless-stopped
+      ports:
+        - "{{ mda_port }}:9000"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ mda }}"
+         CONTAINER_PORT: "{{ mda_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "testing"
+         REDIS_DB: "{{ redis_db }}"
+      networks:
+      - name: zops
+        ipv4_address: "172.25.0.224"
+      state: started
+
+  - name: run worker container
+    docker_container:
+      name: "{{ worker }}"
+      image: zetaops/zmta
+      api_version: 1.32
+      restart_policy: unless-stopped
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip }}"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ worker }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "testing"
+         VAULT_TESTING_TOKEN: "{{ vault_token }}"
+         MTA_RIAK_DEFAULT_BUCKET_TYPE: "testing_zopsm"
+         MTA_RIAK_RABBIT_HOOK_BUCKET_TYPE: "testing_rabbit_hook"
+         REDIS_DB: "{{ redis_db }}"
+         RABBIT_VIRTUAL_HOST: "testing"
+      networks:
+      - name: zops
+        ipv4_address: "172.25.0.225"
+      state: started
+
+  - name: run migrater container
+    docker_container:
+      name: "migrater"
+      image: zetaops/saas
+      api_version: 1.32
+      ports:
+        - "9000:10000"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip }}"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "migrater"
+         CONTAINER_PORT: "9000"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         DB_HOST: "{{ hostvars[groups['postgres'][0]].ansible_ssh_host }}"
+         DB_USER: 'tester'
+         DB_PASSWORD: 'aeBo8AiKood9IeWo'
+         DB_NAME: 'testing'
+         DB_PORT: '5432'
+         SECRET_KEY: 'gS2vvPu6ST552CnR8qk8zJShmcnqz73pZCPVbI9hQJu89CQLbJfxdJnW4GWuyoDgWNA'
+         WORKING_ENVIRONMENT: "testing"
+         VAULT_TESTING_TOKEN: "{{ vault_token }}"
+         REDIS_DB: "{{ redis_db }}"
+      entrypoint: /usr/local/bin/python3
+      command: /usr/local/lib/python3.6/site-packages/zopsm/saas/manage.py reset
+      networks:
+      - name: zops
+        ipv4_address: "172.25.0.226"
+      state: started
+
+
+  - name: run saas container
+    docker_container:
+      name: "{{ saas }}"
+      image: zetaops/saas
+      api_version: 1.32
+      restart_policy: unless-stopped
+      ports:
+        - "{{ saas_port }}:10000"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip }}"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ saas }}"
+         CONTAINER_PORT: "{{ saas_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         DB_HOST: "{{ hostvars[groups['postgres'][0]].ansible_ssh_host }}"
+         DB_USER: 'tester'
+         DB_PASSWORD: 'aeBo8AiKood9IeWo'
+         DB_NAME: 'testing'
+         DB_PORT: '5432'
+         SECRET_KEY: 'gS2vvPu6ST552CnR8qk8zJShmcnqz73pZCPVbI9hQJu89CQLbJfxdJnW4GWuyoDgWNA'
+         WORKING_ENVIRONMENT: "testing"
+         VAULT_TESTING_TOKEN: "{{ vault_token }}"
+         REDIS_DB: "{{ redis_db }}"
+      networks:
+      - name: zops
+        ipv4_address: "172.25.0.227"
+      state: started
+
+#############################################################################################

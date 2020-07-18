@@ -1,0 +1,1450 @@
+---
+- config:
+    - testset: "Account Actions"
+    - generators:
+      - 'account_email_handler': {type: 'random_text', max_length: 20}
+      - 'admin_email_handler': {type: 'random_text', max_length: 20}
+      - 'admin_email_handler2': {type: 'random_text', max_length: 20}
+      - 'admin_email_handler3': {type: 'random_text', max_length: 20}
+      - 'admin_email_handler2_altered': {type: 'random_text', max_length: 8}
+      - 'developer_email_handler': {type: 'random_text', max_length: 10}
+      - 'developer_email_handler2': {type: 'random_text', max_length: 10}
+      - 'developer_email_handler_altered': {type: 'random_text', max_length: 8}
+      - 'consumer_email_handler1': {type: 'random_text', max_length: 10}
+      - 'consumer_email_handler2': {type: 'random_text', max_length: 10}
+      - 'consumer_email_handler3': {type: 'random_text', max_length: 10}
+      - 'not_valid_registration_id': {type: 'random_int', max_length: 10}
+      - 'invalid_approve_code': {type: 'random_int', max_length: 10}
+      - 'invalid_project_id': {type: 'random_int', max_length: 10}
+      - 'invalid_consumer_id': {type: 'random_int', max_length: 10}
+      - 'invalid_consumer_id2': {type: 'random_int', max_length: 10}
+      - 'invalid_service_catalog_code': {type: 'random_int', max_length: 10}
+    - variable_binds:
+      - uri_prefix: 'api/v1'
+      - mailgun_token: "Basic YXBpOmtleS00YWRkYTA2ZjI3ZjE1MGUwZDkyMDYzMmNkYmU1YjI3NQ=="
+
+- test:
+    - name: "Resources List"
+    - url: {template: "$saas_host"}
+    - method: 'GET'
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [200]
+
+                                  #### Account and User Test ####
+                                  #### Account and User Test ####
+                                  #### Account and User Test ####
+                                  #### Account and User Test ####
+                                  #### Account and User Test ####
+- test:
+    - name: "Login as Tenant Manager"
+    - url: {template: "$saas_host/$uri_prefix/session"}
+    - method: 'POST'
+    - body: {template: '{"email":"$tenant_manager_email", "password": "$manager_password"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'manager_token': {jsonpath_mini: 'content.token'}
+
+- test:
+    - generator_binds: {admin_email_handler: admin_email_handler}
+    - name: "Register New Account"
+    - url: {template: "$saas_host/$uri_prefix/register?testing=True"}
+    - method: 'POST'
+    - body: {template: '{
+      "organizationName": "Example Organization",
+      "address": "Example Address, A Street No 5.",
+      "phone": "12345678901",
+      "email": "zops_test_$admin_email_handler@example.com"
+      }'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'registration_id': {jsonpath_mini: 'content.registrationId'}
+        - 'email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - name: "Register New Account with Already Exist Email"
+    - url: {template: "$saas_host/$uri_prefix/register"}
+    - method: 'POST'
+    - body: {template: '{
+      "organizationName": "Example Organization",
+      "address": "Example Address, A Street No 5.",
+      "phone": "12345678901",
+      "email": "$email"
+      }'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [409]
+
+- test:
+    - name: "Email-Tracking with Manager Role"
+    - url: {template: "$saas_host/$uri_prefix/email-tracking?receiver=$email"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'mailgun_mail_id1': {jsonpath_mini: 'content.0.providerMailId'}
+
+- test:
+    - delay: 6
+    - name: "MailGun Events"
+    - url: {template: "https://api.mailgun.net/v3/mg.zops.io/events?message-id=$mailgun_mail_id1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": $mailgun_token}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'mail_url': {jsonpath_mini: 'items.0.storage.url'}
+
+- test:
+    - name: "Take Approve Code inside Mailgun Header"
+    - url: {template: "$mail_url"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": $mailgun_token}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'invalid_approve_code': {jsonpath_mini: 'X-Approve-Code'}
+
+- test:
+    - name: "Resend approve code"
+    - url: {template: "$saas_host/$uri_prefix/register/approve-code?testing=True"}
+    - method: 'POST'
+    - body: {template: '{"email": "$email"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+
+
+- test:
+    - name: "Approve Account with old(invalid) approve code"
+    - url: {template: "$saas_host/$uri_prefix/register/$registration_id/"}
+    - method: 'PUT'
+    - body: {template: '{"approveCode": "$invalid_approve_code", "email": "$email", "password": "123", "firstName": "adminfirst", "lastName": "adminlast"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [409]
+
+- test:
+    - name: "Email-Tracking(email) with Manager Role"
+    - url: {template: "$saas_host/$uri_prefix/email-tracking?receiver=$email"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'mailgun_mail_id2': {jsonpath_mini: 'content.0.providerMailId'}
+
+- test:
+    - delay: 6
+    - name: "MailGun Events"
+    - url: {template: "https://api.mailgun.net/v3/mg.zops.io/events?message-id=$mailgun_mail_id2"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": $mailgun_token}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'mail_url': {jsonpath_mini: 'items.0.storage.url'}
+
+- test:
+    - name: "Take Approve Code inside Mailgun Header"
+    - url: {template: "$mail_url"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": $mailgun_token}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'approve_code': {jsonpath_mini: 'X-Approve-Code'}
+
+- test:
+    - name: "Approve Account"
+    - url: {template: "$saas_host/$uri_prefix/register/$registration_id/"}
+    - method: 'PUT'
+    - body: {template: '{"approveCode": "$approve_code", "email": "$email", "password": "123", "firstName": "adminfirst", "lastName": "adminlast"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [202]
+    - extract_binds:
+        - 'user_email': {jsonpath_mini: 'content.email'}
+        - 'approve_account_token': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Get Account Information"
+    - url: {template: "$saas_host/$uri_prefix/account"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$approve_account_token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.organizationName", comparator: "eq", expected: "Example Organization"}
+        - compare: {jsonpath_mini: "content.email", comparator: "eq", expected: {template: "$email"}}
+
+- test:
+    - name: "Forgot Password Test"
+    - url: {template: "$saas_host/$uri_prefix/forgot-password"}
+    - method: 'POST'
+    - body: {template: '{"email":"$user_email"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+
+- test:
+    - name: "Email-Tracking(email) with Manager Role"
+    - url: {template: "$saas_host/$uri_prefix/email-tracking?receiver=$email"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'mailgun_mail_id4': {jsonpath_mini: 'content.0.providerMailId'}
+
+- test:
+    - delay: 6
+    - name: "MailGun Events"
+    - url: {template: "https://api.mailgun.net/v3/mg.zops.io/events?message-id=$mailgun_mail_id4"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": $mailgun_token}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'mail_url': {jsonpath_mini: 'items.0.storage.url'}
+
+- test:
+    - name: "Take Reset Token inside Mailgun Header"
+    - url: {template: "$mail_url"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": $mailgun_token}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'reset_token': {jsonpath_mini: 'X-Reset-Token'}
+
+- test:
+    - name: "Reset User Password"
+    - url: {template: "$saas_host/$uri_prefix/reset-password"}
+    - method: 'PUT'
+    - headers: {'Content-Type': 'application/json'}
+    - body: {template: '{"resetToken": "$reset_token","password": "reset_password_123" }'}
+    - expected_status: [202]
+
+- test:
+    - name: "Retry with Used Reset Token"
+    - url: {template: "$saas_host/$uri_prefix/reset-password"}
+    - method: 'PUT'
+    - headers: {'Content-Type': 'application/json'}
+    - body: {template: '{"resetToken": "$reset_token", "password": "reset_password_123"}'}
+    - expected_status: [404]
+
+- test:
+    - name: "Login as Admin User with old password"
+    - url: {template: "$saas_host/$uri_prefix/session"}
+    - method: 'POST'
+    - body: {template: '{"email":"$user_email", "password": "123"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [404]
+
+- test:
+    - name: "Login as Admin User"
+    - url: {template: "$saas_host/$uri_prefix/session"}
+    - method: 'POST'
+    - body: {template: '{"email":"$user_email", "password": "reset_password_123"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'token': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Get Account Information"
+    - url: {template: "$saas_host/$uri_prefix/account"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.organizationName", comparator: "eq", expected: "Example Organization"}
+        - compare: {jsonpath_mini: "content.email", comparator: "eq", expected: {template: "$email"}}
+
+- test:
+    - name: "Get Account Information with Invalid Token"
+    - url: {template: "$saas_host/$uri_prefix/account"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "Invalid Token"}}
+    - expected_status: [400]
+
+- test:
+    - name: "Get Me"
+    - url: {template: "$saas_host/$uri_prefix/me"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [200]
+
+- test:
+    - generator_binds: {account_email_handler: account_email_handler}
+    - name: "Update Account"
+    - url: {template: "$saas_host/$uri_prefix/account"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - body: {template: '{
+      "organizationName": "Updated Example Organization",
+      "address": "Updated Example Address, A Street No 5.",
+      "phone": "12345678000",
+      "email": "updated_account_email$account_email_handler@example.com"
+      }'}
+    - expected_status: [202]
+
+- test:
+    - generator_binds: {not_valid_registration_id: not_valid_registration_id}
+    - name: "Approve Account with Not Valid Id"
+    - url: {template: "$saas_host/$uri_prefix/register/$not_valid_registration_id/"}
+    - method: 'PUT'
+    - body: {template: '{"approveCode": "$approve_code", "email": "$email", "password": "123", "firstName": "adminname", "lastName": "adminlastname"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [404]
+
+- test:
+    - generator_binds: {invalid_approve_code: invalid_approve_code}
+    - name: "Approve Account with Invalid Approve Code"
+    - url: {template: "$saas_host/$uri_prefix/register/$not_valid_registration_id/"}
+    - method: 'PUT'
+    - body: {template: '{"approveCode": "$invalid_approve_code", "email": "$email", "password": "123", "firstName": "a", "lastName": "b"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [404]
+
+- test:
+    - generator_binds: {admin_email_handler2: admin_email_handler2}
+    - name: "Create a new account admin"
+    - url: {template: "$saas_host/$uri_prefix/admins"}
+    - method: 'POST'
+    - body: {template: '{"email": "zops_test_$admin_email_handler2@example.com", "password": "123", "firstName": "ahmet1", "lastName": "mehmet1"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'secondary_admin_id': {jsonpath_mini: 'content.id'}
+        - 'secondary_admin_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - generator_binds: {admin_email_handler3: admin_email_handler3}
+    - name: "Create a New Account Admin 2"
+    - url: {template: "$saas_host/$uri_prefix/admins"}
+    - method: 'POST'
+    - body: {template: '{"email": "zops_test_$admin_email_handler3@example.com", "password": "123", "firstName": "ahmet2", "lastName": "mehmet2"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'secondary_admin_id2': {jsonpath_mini: 'content.id'}
+        - 'secondary_admin_email2': {jsonpath_mini: 'content.email'}
+
+- test:
+    - name: "Create a New Account Admin With Already Exist Email"
+    - url: {template: "$saas_host/$uri_prefix/admins"}
+    - method: 'POST'
+    - body: {template: '{"email": "$secondary_admin_email", "password": "123", "firstName": "ahmet", "lastName": "mehmet"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [409]
+
+- test:
+    - name: "List account admins"
+    - url: {template: "$saas_host/$uri_prefix/admins"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [200]
+
+- test:
+    - name: "Get the newly created account admin"
+    - url: {template: "$saas_host/$uri_prefix/admins/$secondary_admin_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$secondary_admin_email"}}
+
+- test:
+    - generator_binds: {admin_email_handler2_altered: admin_email_handler2_altered}
+    - name: "Update the newly created account admin"
+    - url: {template: "$saas_host/$uri_prefix/admins/$secondary_admin_id"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - body: {template: '{"email": "zops_test_$admin_email_handler2_altered@example.com", "password": "1234567890", "firstName": "ahmetupdated", "lastName": "mehmetupdated"}'}
+    - expected_status: [202]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "zops_test_$admin_email_handler2_altered@example.com"}}
+
+- test:
+    - generator_binds: {admin_email_handler2_altered: admin_email_handler2_altered}
+    - name: "Update The Account Admin with Already exist Email"
+    - url: {template: "$saas_host/$uri_prefix/admins/$secondary_admin_id"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - body: {template: '{"email": "$secondary_admin_email2", "password": "1234567890", "firstName": "ahmet", "lastName": "mehmet"}'}
+    - expected_status: [409]
+
+- test:
+    - generator_binds: {admin_email_handler2_altered: admin_email_handler2_altered}
+    - name: "Invalid Token / Update The Account Admin with Already exist Email"
+    - url: {template: "$saas_host/$uri_prefix/admins/$secondary_admin_id"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "invalid_token"}}
+    - body: {template: '{"email": "$secondary_admin_email2", "password": "1234567890", "firstName": "ahmet", "lastName": "mehmet"}'}
+    - expected_status: [400]
+
+## todo: activate and test after implementing delete operations
+- test:
+    - name: "Delete the newly created account admin"
+    - url: {template: "$saas_host/$uri_prefix/admins/$secondary_admin_id"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Delete already deleted account admin"
+    - url: {template: "$saas_host/$uri_prefix/admins/$secondary_admin_id"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [404]
+
+
+- test:
+    - name: "Get the newly created account admin"
+    - url: {template: "$saas_host/$uri_prefix/admins/$secondary_admin_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [404]
+
+                                  #### Developer Test ####
+                                  #### Developer Test ####
+                                  #### Developer Test ####
+                                  #### Developer Test ####
+                                  #### Developer Test ####
+
+- test:
+    - generator_binds: {developer_email_handler: developer_email_handler}
+    - name: "Create a developer"
+    - url: {template: "$saas_host/$uri_prefix/developers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - body: {template: '{"email": "zops_test_$developer_email_handler@example.com", "password": "123", "firstName": "ahmet", "lastName": "mehmet"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'developer_id': {jsonpath_mini: 'content.id'}
+        - 'developer_email': {jsonpath_mini: 'content.email'}
+
+- test:
+    - generator_binds: {developer_email_handler2: developer_email_handler2}
+    - name: "Create a Developer 2"
+    - url: {template: "$saas_host/$uri_prefix/developers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - body: {template: '{"email": "zops_test_$developer_email_handler2@example.com", "password": "123", "firstName": "ahmet", "lastName": "mehmet"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'developer_id2': {jsonpath_mini: 'content.id'}
+        - 'developer_email2': {jsonpath_mini: 'content.email'}
+
+- test:
+    - name: "Create a Developer with Already Exist Email"
+    - url: {template: "$saas_host/$uri_prefix/developers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - body: {template: '{"email": "$developer_email", "password": "123", "firstName": "ahmet", "lastName": "mehmet"}'}
+    - expected_status: [409]
+
+- test:
+    - name: "List developer"
+    - url: {template: "$saas_host/$uri_prefix/developers"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$developer_id"}}
+
+- test:
+    - name: "Get the developer"
+    - url: {template: "$saas_host/$uri_prefix/developers/$developer_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$developer_email"}}
+
+- test:
+    - generator_binds: {developer_email_handler_altered: developer_email_handler_altered}
+    - name: "Update the developer"
+    - url: {template: "$saas_host/$uri_prefix/developers/$developer_id"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - body: {template: '{"email": "zops_test_$developer_email_handler_altered@example.com", "password": "0123456789", "firstName": "ahmet", "lastName": "mehmet"}'}
+    - expected_status: [202]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "zops_test_$developer_email_handler_altered@example.com"}}
+
+- test:
+    - generator_binds: {developer_email_handler_altered: developer_email_handler_altered}
+    - name: "Update the Developer with Already Exist Email"
+    - url: {template: "$saas_host/$uri_prefix/developers/$developer_id"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - body: {template: '{"email": "$developer_email2", "password": "0123456789", "firstName": "ahmet", "lastName": "mehmet"}'}
+    - expected_status: [409]
+
+
+
+- test:
+    - name: "Delete the developer"
+    - url: {template: "$saas_host/$uri_prefix/developers/$developer_id"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [202]
+
+
+- test:
+    - name: "Try to get deleted developer"
+    - url: {template: "$saas_host/$uri_prefix/developers/$developer_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [404]
+
+
+- test:
+    - generator_binds: {developer_email_handler: developer_email_handler}
+    - name: "Create a new super developer"
+    - url: {template: "$saas_host/$uri_prefix/developers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - body: {template: '{"email": "zops_test_super_$developer_email_handler@example.com", "password": "123", "firstName": "ahmet", "lastName": "mehmet"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'developer_id': {jsonpath_mini: 'content.id'}
+        - 'developer_email': {jsonpath_mini: 'content.email'}
+        - 'developer_token': {jsonpath_mini: 'content.token'}
+
+##########
+### Run following test as developer using `developer_token`
+##########
+
+
+- test:
+    - generator_binds: {developer_email_handler: developer_email_handler}
+    - name: "UnAuthorized Request / Create a new super developer"
+    - url: {template: "$saas_host/$uri_prefix/developers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{"email": "zops_test_super_$developer_email_handler@example.com", "password": "123", "firstName": "ahmet", "lastName": "mehmet"}'}
+    - expected_status: [401]
+
+                                  #### Project Test ####
+                                  #### Project Test ####
+                                  #### Project Test ####
+                                  #### Project Test ####
+
+- test:
+    - name: "Create a new project"
+    - url: {template: "$saas_host/$uri_prefix/projects"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{"name": "Aka Project", "description": "Super top secret project!"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'project_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Update Project Api keys"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/api"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{"fcmApiKeys": "asdasdasdas123123", "fcmProjectNumber": "12312312qweqweq213", "apnsCert": "TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlzIHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2YgdGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGludWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNlZWRzIHRoZSBzaG9ydCB2ZWhlbWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=" }'}
+    - expected_status: [202]
+
+- test:
+    - name: "Get Project Api keys"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/api"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [200]
+
+- test:
+    - name: "List projects"
+    - url: {template: "$saas_host/$uri_prefix/projects"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": "Aka Project"}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": "Super top secret project!"}
+
+- test:
+    - name: "Get the project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": "Aka Project"}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": "Super top secret project!"}
+
+- test:
+    - generator_binds: {invalid_project_id: invalid_project_id}
+    - name: "Get the Project with Invalid Project Id"
+    - url: {template: "$saas_host/$uri_prefix/projects/$invalid_project_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [404]
+
+- test:
+    - name: "Update the project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id"}
+    - method: 'PUT'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{"name": "Aka Project!..", "description": "Super top secret project!"}'}
+    - expected_status: [202]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": "Aka Project!.."}
+
+## TODO: delete and create a new project here!..
+
+
+                                  #### Consumer Test ####
+                                  #### Consumer Test ####
+                                  #### Consumer Test ####
+                                  #### Consumer Test ####
+
+- test:
+    - name: "Create a new consumer - 1"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer1_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create a new consumer - 2"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer2_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create a new consumer - 3"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer3_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create a new consumer - 4"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer4_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create a new consumer - 5"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer5_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create a new consumer - 6"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer6_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create a new consumer - 7"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer7_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create a new consumer - 8"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer8_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create a new consumer - 9"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer9_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create a new consumer - 10"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer10_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create a new consumer - 11"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer11_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create a new consumer - 12"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer12_id': {jsonpath_mini: 'content.id'}
+
+- test:
+      - name: "Create a new consumer - 13"
+      - url: {template: "$saas_host/$uri_prefix/consumers"}
+      - method: 'POST'
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+      - body: {template: '{}'}
+      - expected_status: [201]
+      - extract_binds:
+            - 'consumer13_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "List consumers"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$consumer1_id"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$consumer2_id"}}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": {template: "$consumer3_id"}}
+
+
+- test:
+    - name: "Attach consumer 1 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - generator_binds: {invalid_project_id: invalid_project_id}
+    - name: "Attach Consumer 1 to Not Exist Project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$invalid_project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [404]
+
+- test:
+    - generator_binds: {invalid_consumer_id2: invalid_consumer_id2}
+    - name: "Attach not Exist Consumer to Project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$invalid_consumer_id2"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [404]
+
+- test:
+    - name: "Attach consumer 2 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer2_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 3 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer3_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+
+- test:
+    - name: "De-Attach consumer 1 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers/$consumer1_id"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [202]
+
+- test:
+    - generator_binds: {invalid_consumer_id2: invalid_consumer_id}
+    - name: "De-Attach Invalid Consumer to Project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers/$invalid_consumer_id"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [404]
+
+- test:
+    - generator_binds: {invalid_project_id: invalid_project_id}
+    - name: "De-Attach  Consumer 1 to Invalid Project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$invalid_project_id/consumers/$consumer1_id"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [404]
+
+
+- test:
+    - name: "De-Attach consumer 2 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers/$consumer2_id"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [202]
+
+
+- test:
+    - name: "De-Attach consumer 3 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers/$consumer3_id"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [202]
+
+## reattach consumers just removed from project.
+
+- test:
+    - name: "Attach consumer 1 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 2 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer2_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+
+############
+# service catalog, do not run regular, only inits.
+#######
+
+- test:
+    - name: "Create ROC service catalog item."
+    - url: {template: "$saas_host/$uri_prefix/services"}
+    - method: 'POST'
+    - body: {template: '{"codeName":"roc", "name":"Real Time Online Chat", "description":"Real Time Online Chat is funny!"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [201]
+
+
+############
+# service catalog, do not run regular, only inits.
+#######
+
+- test:
+    - name: "Create PUSH service catalog item."
+    - url: {template: "$saas_host/$uri_prefix/services"}
+    - method: 'POST'
+    - body: {template: '{"codeName":"push", "name":"Push Service", "description":"Push Service"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [201]
+
+                                  #### Project Service Test ####
+                                  #### Project Service Test ####
+                                  #### Project Service Test ####
+                                  #### Project Service Test ####
+
+- test:
+    - name: "List items..."
+    - url: {template: "$saas_host/$uri_prefix/services"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [200]
+    - delay: 2
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": "Real Time Online Chat"}
+
+############################
+
+- test:
+    - name: "Attach service project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/services"}
+    - method: 'POST'
+    - body: {template: '{"name":"message-roc", "description":"fff-roc", "serviceCatalogCode":"roc"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'service_catalog_code': {jsonpath_mini: 'content.serviceCatalogCode'}
+
+- test:
+    - name: "Attach Service Project Already Exist"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/services"}
+    - method: 'POST'
+    - body: {template: '{"name":"message", "description":"fff", "serviceCatalogCode":"roc"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [409]
+
+
+- test:
+    - name: "De-attach service project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/services/$service_catalog_code"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Get the project with services(not contain de-attached service)"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": "Aka Project"}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": "Super top secret project!"}
+        - compare: {jsonpath_mini: "content.services", comparator: "count_eq", expected: 0}
+
+- test:
+    - name: "De-attach Service Not Exist Project "
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/services/$service_catalog_code"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [404]
+
+
+- test:
+    - name: "Re-attach service project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/services"}
+    - method: 'POST'
+    - body: {template: '{"name":"message", "description":"fff", "serviceCatalogCode":"roc"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'service_catalog_code': {jsonpath_mini: 'content.serviceCatalogCode'}
+
+- test:
+    - name: "Get project service"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/services/$service_catalog_code"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [200]
+
+- test:
+    - name: "Get project service with invalid project_id"
+    - url: {template: "$saas_host/$uri_prefix/projects/invalid_project_id/services/$service_catalog_code"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [404]
+
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host/$uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'consumer_token': {jsonpath_mini: 'content.token'}
+
+- test:
+    - generator_binds: {invalid_service_catalog_code: invalid_service_catalog_code}
+    - name: "Create Roc Service Token with Invalid Service"
+    - url: {template: "$saas_host/$uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id", "projectId":"$project_id", "serviceCatalogCode":"$invalid_service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [400]
+
+- test:
+    - name: "Create Roc Service Token with Not Attached Consumer  "
+    - url: {template: "$saas_host/$uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer3_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [400]
+
+
+- test:
+    - name: "Delete and invalidate Roc Service Token"
+    - url: {template: "$saas_host/$uri_prefix/consumer-tokens/$consumer_token/projects/$project_id/services/$service_catalog_code"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [202]
+
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host/$uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id", "projectId":"$project_id", "serviceCatalogCode":"$service_catalog_code"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+                                  #### Push Service Test ####
+                                  #### Push Service Test ####
+                                  #### Push Service Test ####
+                                  #### Push Service Test ####
+
+- test:
+    - name: "Attach Push Service to Project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/services"}
+    - method: 'POST'
+    - body: {template: '{"name":"push service", "description":"deneme", "serviceCatalogCode":"push"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Create Service Token"
+    - url: {template: "$saas_host/$uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id", "projectId":"$project_id", "serviceCatalogCode":"push"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Get the project with services"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": "Aka Project"}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": "Super top secret project!"}
+        - compare: {jsonpath_mini: "content.services", comparator: "contains", expected: "push"}
+        - compare: {jsonpath_mini: "content.services", comparator: "contains", expected: "roc"}
+
+
+                                  #### For Deletion Test ####
+                                  #### For Deletion Test ####
+                                  #### For Deletion Test ####
+                                  #### For Deletion Test ####
+
+- test:
+    - generator_binds: {admin_email_handler: admin_email_handler}
+    - name: "Register New Account 2 (For Deletion)"
+    - url: {template: "$saas_host/$uri_prefix/register?testing=True"}
+    - method: 'POST'
+    - body: {template: '{
+      "organizationName": "Deleted Example Organization",
+      "address": "Deleted Example Address, A Street No 5.",
+      "phone": "12345678901",
+      "email": "deleted_zops_test_$admin_email_handler@example.com"
+      }'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'registration_id_delete': {jsonpath_mini: 'content.registrationId'}
+        - 'email_delete': {jsonpath_mini: 'content.email'}
+
+- test:
+    - name: "Email-Tracking with Manager Role"
+    - url: {template: "$saas_host/$uri_prefix/email-tracking?receiver=$email_delete"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'mailgun_mail_id3': {jsonpath_mini: 'content.0.providerMailId'}
+
+- test:
+    - delay: 6
+    - name: "MailGun Events"
+    - url: {template: "https://api.mailgun.net/v3/mg.zops.io/events?message-id=$mailgun_mail_id3"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": $mailgun_token}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'mail_url': {jsonpath_mini: 'items.0.storage.url'}
+
+- test:
+    - name: "Take Approve Code inside Mailgun Header"
+    - url: {template: "$mail_url"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": $mailgun_token}}
+    - expected_status: [200]
+    - extract_binds:
+        - 'approve_code_delete': {jsonpath_mini: 'X-Approve-Code'}
+
+- test:
+    - name: "Approve Account 2 (For Deletion Test)"
+    - url: {template: "$saas_host/$uri_prefix/register/$registration_id_delete/"}
+    - method: 'PUT'
+    - body: {template: '{"approveCode": "$approve_code_delete", "email": "$email_delete", "password": "123", "firstName": "deleted_adminfirst", "lastName": "deleted_adminlast"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [202]
+
+- test:
+    - name: "Login as Admin User (For Deletion Test)"
+    - url: {template: "$saas_host/$uri_prefix/session"}
+    - method: 'POST'
+    - body: {template: '{"email":"$email_delete", "password": "123"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'deleted_token': {jsonpath_mini: 'content.token'}
+
+- test:
+    - generator_binds: {admin_email_handler2: admin_email_handler2}
+    - name: "Create a new account admin 1 (For Account Deletion)"
+    - url: {template: "$saas_host/$uri_prefix/admins"}
+    - method: 'POST'
+    - body: {template: '{"email": "deleted_zops_test_$admin_email_handler2@example.com", "password": "123", "firstName": "deleted_ahmet1", "lastName": "deleted_mehmet1"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$deleted_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'delete_email2': {jsonpath_mini: 'content.email'}
+        - 'new_deleted_token': {jsonpath_mini: 'content.token'}
+
+                            #### All Token Deletion Test ####
+                            #### All Token Deletion Test ####
+
+- test:
+    - name: "Login as Admin User (For Deletion All Token)"
+    - delay: 1
+    - url: {template: "$saas_host/$uri_prefix/session"}
+    - method: 'POST'
+    - body: {template: '{"email":"$delete_email2", "password": "123"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'all_token_deletion1': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Login as Admin User (For Deletion All Token)"
+    - delay: 1
+    - url: {template: "$saas_host/$uri_prefix/session"}
+    - method: 'POST'
+    - body: {template: '{"email":"$delete_email2", "password": "123"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'all_token_deletion2': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Login as Admin User (For Deletion All Token)"
+    - delay: 1
+    - url: {template: "$saas_host/$uri_prefix/session"}
+    - method: 'POST'
+    - body: {template: '{"email":"$delete_email2", "password": "123"}'}
+    - headers: {'Content-Type': 'application/json'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'all_token_deletion3': {jsonpath_mini: 'content.token'}
+
+- test:
+    - name: "Logout All Token (except this)"
+    - url: {template: "$saas_host/$uri_prefix/session/logout?others=True"}
+    - delay: 1
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$new_deleted_token"}}
+    - expected_status: [202]
+
+- test:
+    - name: "List account admins with Logged Out Token(For Account Deletion)"
+    - url: {template: "$saas_host/$uri_prefix/admins"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$all_token_deletion2"}}
+    - expected_status: [401]
+
+- test:
+    - generator_binds: {admin_email_handler2: admin_email_handler2}
+    - name: "Create a new account admin 2 (For Account Deletion)"
+    - url: {template: "$saas_host/$uri_prefix/admins"}
+    - method: 'POST'
+    - body: {template: '{"email": "deleted_zops_test_$admin_email_handler2@example.com", "password": "123", "firstName": "deleted_ahmet1", "lastName": "deleted_mehmet1"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$deleted_token"}}
+    - expected_status: [201]
+    - extract_binds:
+        - 'delete_admin3': {jsonpath_mini: 'content.id'}
+        - 'delete_email3': {jsonpath_mini: 'content.email'}
+
+
+- test:
+    - name: "Logout"
+    - url: {template: "$saas_host/$uri_prefix/session/logout"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$deleted_token"}}
+    - expected_status: [202]
+
+- test:
+    - name: "List account admins with Logged Out Token(For Account Deletion)"
+    - url: {template: "$saas_host/$uri_prefix/admins"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$deleted_token"}}
+    - expected_status: [401]
+
+
+- test:
+    - name: "Create a new project (For Account Deletion)"
+    - url: {template: "$saas_host/$uri_prefix/projects"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$new_deleted_token"}}
+    - body: {template: '{"name": "deleted_Aka Project", "description": "deleted_Super top secret project!"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'deleted_project_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Create a new project (For Account Deletion)"
+    - url: {template: "$saas_host/$uri_prefix/projects"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$new_deleted_token"}}
+    - body: {template: '{"name": "deleted_Aka Project 2", "description": "deleted_Super top secret project 2!"}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'deleted_project_id2': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "List projects (For Account Deletion)"
+    - url: {template: "$saas_host/$uri_prefix/projects"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$new_deleted_token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {"raw_body":"", "comparator":"contains", "expected": "deleted_Aka Project"}
+        - compare: {"raw_body":"", "comparator":"contains", "expected": "deleted_Super top secret project!"}
+
+- test:
+    - generator_binds: {consumer_email_handler1: consumer_email_handler1}
+    - name: "Create a new consumer - 1 (For Deletion)"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$new_deleted_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'deleted_consumer1_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - generator_binds: {consumer_email_handler2: consumer_email_handler2}
+    - name: "Create a new consumer - 2 (For Deletion)"
+    - url: {template: "$saas_host/$uri_prefix/consumers"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$new_deleted_token"}}
+    - body: {template: '{}'}
+    - expected_status: [201]
+    - extract_binds:
+        - 'deleted_consumer2_id': {jsonpath_mini: 'content.id'}
+
+- test:
+    - name: "Delete account (For Account Deletion)"
+    - url: {template: "$saas_host/$uri_prefix/account"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$new_deleted_token"}}
+    - expected_status: [202]
+
+- test:
+    - name: "List projects (For Account Deletion)"
+    - url: {template: "$saas_host/$uri_prefix/projects"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$new_deleted_token"}}
+    - expected_status: [401]
+
+
+### service item limit and project user limit test
+### service item limit and project user limit test
+### service item limit and project user limit test
+
+
+
+- test:
+    - name: "Attach consumer 4 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer4_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 5 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer5_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 6 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer6_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 7 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer7_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 8 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer8_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 9 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer9_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 10 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer10_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 11 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer11_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+    - name: "Attach consumer 12 to project"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer12_id"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [201]
+
+- test:
+      - name: "Attach consumer 13 to project"
+      - url: {template: "$saas_host/$uri_prefix/projects/$project_id/consumers"}
+      - method: 'POST'
+      - body: {template: '{"consumerId":"$consumer13_id"}'}
+      - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+      - expected_status: [201]
+
+
+### service item limit(message limit) test
+
+- test:
+    - name: "Service Event Test"
+    - url: {template: "$saas_host/$uri_prefix/service-event"}
+    - method: 'POST'
+    - headers: {template: {"Content-Type": "application/json"}}
+    - body: {template: '{"serviceData": {"${project_id}__roc__create_channel": 20, "${project_id}__push__post_push_message": 25, "${project_id}__roc__post_message": 25 }}'}
+    - expected_status: [201]
+
+- test:
+    - name: "Get project service"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/services/roc"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.itemUsed", comparator: "eq", expected: 25}
+
+- test:
+    - name: "Get project service"
+    - url: {template: "$saas_host/$uri_prefix/projects/$project_id/services/push"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.itemUsed", comparator: "eq", expected: 25}
+
+- test:
+    - name: "Create Roc Service Token"
+    - url: {template: "$saas_host/$uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id", "projectId":"$project_id", "serviceCatalogCode":"roc"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [402]
+
+- test:
+    - name: "Create Push Service Token"
+    - url: {template: "$saas_host/$uri_prefix/consumer-tokens"}
+    - method: 'POST'
+    - body: {template: '{"consumerId":"$consumer1_id", "projectId":"$project_id", "serviceCatalogCode":"push"}'}
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$developer_token"}}
+    - expected_status: [402]
+# email-tracking test
+# email-tracking test
+# email-tracking test
+# email-tracking test
+- test:
+    - name: "Email-Tracking(mailgun-id) by Manager Role"
+    - url: {template: "$saas_host/$uri_prefix/email-tracking?provider_mail_id=$mailgun_mail_id2"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.0.providerMailId", comparator: "eq", expected: {template: "$mailgun_mail_id2"}}
+
+- test:
+    - name: "Email-Tracking(account-id) by Manager Role"
+    - url: {template: "$saas_host/$uri_prefix/email-tracking?account_id=$registration_id"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.0.providerMailId", comparator: "eq", expected: {template: "$mailgun_mail_id4"}}
+        - compare: {jsonpath_mini: "content.1.providerMailId", comparator: "eq", expected: {template: "$mailgun_mail_id2"}}
+        - compare: {jsonpath_mini: "content.2.providerMailId", comparator: "eq", expected: {template: "$mailgun_mail_id1"}}
+
+- test:
+    - name: "Email-Tracking(accoung_id---mailgun-id) by Manager Role"
+    - url: {template: "$saas_host/$uri_prefix/email-tracking?account_id=$registration_id&provider_mail_id=$mailgun_mail_id2"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [200]
+    - validators:
+        - compare: {jsonpath_mini: "content.0.providerMailId", comparator: "eq", expected: {template: "$mailgun_mail_id2"}}
+
+- test:
+    - name: "Log Tracking with invalid token"
+    - url: {template: "$saas_host/$uri_prefix/log-tracking?page_size=2&page=1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [401]
+
+- test:
+    - name: "Delete account "
+    - url: {template: "$saas_host/$uri_prefix/account"}
+    - method: 'DELETE'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$token"}}
+    - expected_status: [202]
+
+ # Log Tracking Test#
+
+- test:
+    - name: "Log Tracking"
+    - url: {template: "$saas_host/$uri_prefix/log-tracking?page_size=2&page=1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [200]
+
+- test:
+    - name: "Log Tracking with log_level"
+    - url: {template: "$saas_host/$uri_prefix/log-tracking?level_name=ERROR&page_size=5&page=1"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [200]
+
+- test:
+    - name: "Log Tracking with function_name"
+    - url: {template: "$saas_host/$uri_prefix/log-tracking?level_name=ERROR&page_size=5&page=1&function_name=find_redis_role"}
+    - method: 'GET'
+    - headers: {template: {"Content-Type": "application/json", "AUTHORIZATION": "$manager_token"}}
+    - expected_status: [200]

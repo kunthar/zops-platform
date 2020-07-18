@@ -1,0 +1,23 @@
+---
+- hosts: riak
+  become: yes
+  remote_user: ubuntu
+
+  tasks:
+  - name: copy backup script
+    copy:
+      src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/playbooks/backup/templates/backup_riak.sh
+      dest: /usr/local/bin/backup_riak.sh
+      owner: root
+      group: root
+      mode: 0744
+
+  - name: run backup_riak.sh
+    cron:
+      name: "backup riak"
+      minute: "{{ 60 |random }}"
+      hour: 5
+      job: '/usr/local/bin/backup_riak.sh'
+      cron_file: riak
+      user: "root"
+      state: present

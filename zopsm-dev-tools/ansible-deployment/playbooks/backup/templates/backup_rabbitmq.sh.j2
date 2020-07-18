@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+mkdir -p /var/backups/rabbitmq
+
+/usr/local/bin/rabbitmqadmin --host={{ ansible_default_ipv4.address }} --port=15672 --username=zopsm --password=chauj5DuXu7Eirirzohl1Eo3dewooNg6 --vhost=zopsm export /var/backups/rabbitmq/`date "+%d-%m-%Y-%H-%M-%S"`.json

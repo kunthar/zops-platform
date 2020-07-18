@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <base href="/">
+  <meta charset="UTF-8"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!-- Favicon icon -->
+  <link rel="icon" type="image/x-icon" href="assets/images/zeta.png"/>
+
+  <title>ZOPSM</title>
+  <!-- Tell the browser to be responsive to screen width -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- stylesheets -->
+  <link rel="stylesheet" type="text/css" href="assets/scss/bootstrap/bootstrap.css"/>
+  <link rel="stylesheet" type="text/css" href="assets/theme/theme.min.css"/>
+  <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+  <!-- javascript -->
+  <script src="assets/theme/theme.min.js"></script>
+
+  <!-- reCAPTCHA -->
+
+  <script src='https://www.google.com/recaptcha/api.js'></script>
+  <link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.0.3/cookieconsent.min.css" />
+  <script src="//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.0.3/cookieconsent.min.js"></script>
+  <script>
+    window.addEventListener("load", function(){
+      window.cookieconsent.initialise({
+        "palette": {
+          "popup": {
+            "background": "#104C5E"
+          },
+          "button": {
+            "background": "transparent",
+            "text": "#fff",
+            "border": "#fff",
+            "border-radius":"4px"
+          }
+        },
+        "content": {
+          "message": "We use cookies to give you the best experience possible. By continuing  we'll assume you're on board with our",
+          "link": "cookie policy",
+          "href": "cookie-policy"
+        }
+      })});
+  </script>
+
+</head>
+<body>
+<app-root>
+  <!-- ============================================================== -->
+  <!-- Preloader - style you can find in spinners.css -->
+  <!-- ============================================================== -->
+  <!-- Preloader -->
+  <div class="preloader">
+    <div class="cssload-speeding-wheel"></div>
+  </div>
+  <!-- ============================================================== -->
+  <!-- Main wrapper - style you can find in pages.scss -->
+  <!-- ============================================================== -->
+</app-root>
+</body>
+
+</html>

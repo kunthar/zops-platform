@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "000000000000",
+    "firebase_url": "https://pushtest-c675.firebaseio.com",
+    "project_id": "pushtest-c6752",
+    "storage_bucket": "pushtest-c6752.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:00000000000:android:2ce1fbe8d581b2b0",
+        "android_client_info": {
+          "package_name": "com.zetaops.pushtest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "00000000000-pknk9mj66a0plve3omeidmeeelsu5igk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "UseYourOwn3looDyKeY"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

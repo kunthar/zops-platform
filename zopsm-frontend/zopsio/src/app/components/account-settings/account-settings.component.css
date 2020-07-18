@@ -1,0 +1,61 @@
+.session-page {
+  background: #ffffff;
+}
+.session-page .wrapper {
+  margin: 0 auto;
+  width: 80%;
+  margin-top: 45px;
+  background: #ffffff;
+  padding: 15px 50px 40px 50px;
+  border-radius: 0px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: none;
+  min-width: 100px;
+}
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.25;
+  color: #495057;
+  background-color: #fff;
+  background-image: none;
+  background-clip: padding-box;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0rem;
+  transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+}
+.form-control-description {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  height: 250px;
+  color: #495057;
+  background-color: #fff;
+  background-image: none;
+  background-clip: padding-box;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0rem;
+  transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+}
+.btn-shadow.btn-shadow-info {
+  background: #0B4C5F;
+}
+
+.btn-shadow {
+  border: 0;
+  font-weight: 600;
+  color: #fff;
+  display: inline-block;
+  box-shadow: rgba(23,43,99,.24) 0 7px 28px;
+  text-transform: none;
+  letter-spacing: 1px;
+  font-size: 13px;
+  padding: 12px 23px;
+  text-shadow: 1px 1px rgba(0,0,0,.09);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: center;
+}

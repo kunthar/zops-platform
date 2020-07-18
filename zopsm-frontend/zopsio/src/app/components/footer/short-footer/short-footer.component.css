@@ -1,0 +1,49 @@
+.copyright{
+  background-color:#f0f0f0;
+}
+
+.copyright p{
+  font-family:Roboto;
+  padding:15px 0 10px 0;
+}
+
+footer{
+  background-color:#104C5E;
+  min-height:200px;
+  padding:50px 0 20px 0;
+}
+
+footer a{
+  font-family:Roboto;
+  color:#b1aca1;
+  padding:10px;
+  text-decoration:none;
+}
+
+footer a:hover{
+  color:#f1f1f1;
+}
+
+footer p{
+  font-family:Roboto;
+  color:#b1aca1;
+}
+
+.fa.fa-facebook , .fa.fa-dropbox, .fa.fa-flickr , .fa.fa-github , .fa.fa-linkedin ,.fa,fa-tumblr ,.fa.fa-google-plus , .fa.fa-tumblr {
+  color:#b1aca1;
+  font-size:20px;
+  padding:10px;
+  margin-bottom:50px;
+}
+
+.fa.fa-facebook:hover , .fa.fa-dropbox:hover , .fa.fa-flickr:hover  , .fa.fa-github:hover  , .fa.fa-linkedin:hover  ,.fa,fa-tumblr:hover  ,.fa.fa-google-plus:hover  , .fa.fa-tumblr:hover  {
+  color:#f1f1f1;
+}
+
+.logo-footer {
+  padding-bottom: 30px;
+  padding-right: 0px;
+}
+.logo {
+  padding-right: 0px;
+}

@@ -1,0 +1,26 @@
+/* You can add global styles to this file, and also import other style files */
+a {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.help-block {
+  color: red;
+  font-size: 12px;
+}
+.cc-btn {
+  display: block;
+  padding: .4em .8em;
+  font-size: .9em;
+  font-weight: 700;
+  border-width: 1px;
+  border-style: solid;
+  text-align: center;
+  white-space: nowrap;
+  border-radius: 6px;
+}
+/* GLOBAL LOADER SETTINGS */
+
+
+
+/* GLOBAL LOADER SETTINGS */

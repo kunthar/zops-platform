@@ -1,0 +1,19 @@
+@startuml
+actor ClientApplications
+collections CNS
+collections Provider
+actor Publisher
+
+ClientApplications -> CNS : Register and Obtain Token
+CNS -> ClientApplications
+
+ClientApplications -> Provider : Send Token
+Provider -> ClientApplications : Created
+
+Provider -> Provider : Store Token
+
+Publisher -> Provider : Send Push Message
+Provider -> CNS : Transmits Message to Central Notifications Service
+CNS -> ClientApplications : Message Delivery
+
+@enduml

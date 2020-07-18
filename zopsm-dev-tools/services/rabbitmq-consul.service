@@ -1,0 +1,22 @@
+# systemd unit example
+[Unit]
+Description=RabbitMQ Service (De)Registrator for Consul
+BindsTo=rabbitmq-server.service
+After=rabbitmq-server.service
+PartOf=rabbitmq-server.service
+
+[Service]
+ExecStartPre=/bin/bash -c "/bin/systemctl set-environment ipaddress=$(/sbin/ifconfig -a eth0 | grep 'inet addr:' \
+ | /usr/bin/cut -d ':' -f 2 | /usr/bin/cut -d ' ' -f1)"
+
+ExecStart=/bin/bash -c "/bin/echo '{   \"service\": {     \"name\": \"rabbitmq\", \"tags\": [\"rabbitmq-service\"],  \
+  \"address\": \"${ipaddress}\",    \"port\": 5672, \"checks\": [ { \"tcp\": \"${ipaddress}:5672\",\
+  \"interval\": \"10s\", \"timeout\": \"1s\"      }    ]  }}'  > /etc/consul.d/rabbitmq.json"
+
+ExecStartPost=/bin/bash -c '/usr/local/bin/consul reload'
+RemainAfterExit=true
+ExecStop=/bin/bash -c '/bin/rm /etc/consul.d/rabbitmq.json'
+ExecStopPost=/bin/bash -c '/usr/local/bin/consul reload'
+
+[Install]
+WantedBy=multi-user.target

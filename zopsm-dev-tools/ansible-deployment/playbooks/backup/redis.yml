@@ -1,0 +1,23 @@
+---
+- hosts: redis
+  become: yes
+  remote_user: ubuntu
+
+  tasks:
+  - name: copy backup script
+    template:
+        src: /home/ubuntu/zopsm-dev-tools/ansible-deployment/playbooks/backup/templates/backup_redis.sh.j2
+        dest: /usr/local/bin/backup_redis.sh
+        owner: root
+        group: root
+        mode: 0744
+
+  - name: run cron redis backup
+    cron:
+        name: "backup redis"
+        minute: "{{ 60 |random }}"
+        hour: 5
+        job: '/usr/local/bin/backup_redis.sh'
+        cron_file: redis
+        user: "root"
+        state: present

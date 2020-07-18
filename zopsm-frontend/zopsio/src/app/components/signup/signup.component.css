@@ -1,0 +1,21 @@
+.features-section {
+  margin-top: 120px;
+  border: 2px solid !important;
+}
+.features-section .feature {
+  margin-top: 70px;
+  border: 2px solid black;
+}
+.container {
+  padding: 20px;
+}
+.session-page .wrapper {
+  border-top: 2px solid #227790;
+}
+.btn-shadow.btn-shadow-info {
+  background: #104C5E;
+  font-size: 13px;
+  font-family: Roboto;
+  letter-spacing: 2px;
+  font-weight: lighter;
+}

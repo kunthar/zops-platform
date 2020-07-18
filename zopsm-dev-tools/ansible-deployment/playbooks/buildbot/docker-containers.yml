@@ -1,0 +1,606 @@
+- hosts: workers
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+  - name: ensure locale is en_US.UTF-8
+    locale_gen:
+      name: en_US.UTF-8
+      state: present
+
+  - name: ensure python-pip
+    apt: pkg={{ item }} state=installed
+    with_items:
+      - python-software-properties
+      - python-pip
+      - git
+
+  - name: install docker-py
+    pip:
+      name:
+       - docker
+       - python-consul
+
+  - name: get vault token from env
+    set_fact:
+      vault_token: "{{ lookup('env', 'VAULT_PROD_TOKEN') }}"
+    no_log: true
+
+  - name: create bb folder for certs
+    file:
+      path: /home/ubuntu/bb
+      state: directory
+
+  - name: copy ca.cert
+    copy:
+      src: /buildbot/container_builder/build/zopsm-dev-tools/certs/ca.cert
+      dest: /home/ubuntu/bb/ca.cert
+
+  - name: copy vault.cert
+    copy:
+      src: /buildbot/container_builder/build/zopsm-dev-tools/certs/CAbundles/vault/vault.cert
+      dest: /home/ubuntu/bb/vault.cert
+
+  - name: copy vault.key
+    copy:
+      src: /buildbot/container_builder/build/zopsm-dev-tools/certs/CAbundles/vault/vault.key
+      dest: /home/ubuntu/bb/vault.key
+
+  - name: cd into /home/ubuntu/zopsm and get the latest commit
+    shell: cd /buildbot/container_builder/build/zopsm && git rev-parse --short HEAD
+    delegate_to: localhost
+    register: latest_commit
+
+  - name: clone or update zopsm
+    git:
+      repo: 'git@github.com:kunthar/zopsm.git'
+      dest: /home/ubuntu/zopsm
+      clone: no
+      update: yes
+      force: yes
+      version: master
+      key_file: /home/ubuntu/.ssh/id_rsa
+      accept_hostkey: yes
+
+  - name: checkout master branch in zopsm
+    shell: cd /home/ubuntu/zopsm && git checkout master
+
+#  - import_tasks: docker-images.yml
+
+  - name: create local facts folder
+    file:
+      path: /etc/ansible/facts.d
+      state: directory
+      mode: 0755
+
+  - name: create local facts zopsm.fact
+    file:
+      path: /etc/ansible/facts.d/zopsm.fact
+      state: touch
+
+  - name: set container names
+    set_fact:
+      gateway: "gateway{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      gateway_port: "{{ 15000 | random(start=10000)}}"
+      auth: "auth{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      auth_port: "{{ 20000 | random(start=15001)}}"
+      worker: "worker{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      mda: "mda{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      mda_port: "{{ 25000 | random(start=20001)}}"
+      push: "push{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      push_port: "{{ 30000 | random(start=25001)}}"
+      saas: "saas{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      saas_port: "{{ 35000 | random(start=30001)}}"
+      nginx: "nginx{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      nginx_port: "{{ 65000 | random(start=35001)}}"
+      push_docs: "push_docs{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      roc_docs: "roc_docs{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      saas_docs: "saas_docs{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      auth_docs: "auth_docs{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      push_docbox: "push_docbox{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      roc_docbox: "roc_docbox{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      saas_docbox: "saas_docbox{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      auth_docbox: "auth_docbox{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      zlogger: "zlogger{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      counter: "counter{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      notifier: "notifier{{ 1000 |random }}_{{ latest_commit.stdout }}"
+      redis_db: "0"
+      vault_token: "{{ lookup('env', 'VAULT_DEV_TOKEN') }}"
+
+
+  - name: create dict from vault group
+    set_fact:
+       vault_host_ip: "{{ vault_host_ip|default({}) | combine( {hostvars[item].name + '.vault': hostvars[item].ansible_ssh_host} ) }}"
+    with_items: "{{ groups['vault'] }}"
+
+  - name: run zlogger container
+    docker_container:
+      name: "{{ zlogger }}"
+      image: zetaops/zlogger
+      api_version: 1.32
+      restart_policy: unless-stopped
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "zopsm"
+         RABBIT_VHOST: "zopsm"
+         RABBIT_EXCHANGE: "inter_comm"
+         VAULT_WORKING_PATH: "tokens"
+         VAULT_DEV_TOKEN: "{{ vault_token }}"
+         LOG_LEVEL: "info"
+      etc_hosts: "{{ vault_host_ip }}"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      state: started
+
+  - name: run counter container
+    docker_container:
+      name: "{{ counter }}"
+      image: zetaops/zlogger
+      api_version: 1.32
+      restart_policy: unless-stopped
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "zopsm"
+         RABBIT_VHOST: "zopsm"
+         RABBIT_EXCHANGE: "inter_comm"
+         VAULT_WORKING_PATH: "tokens"
+         VAULT_DEV_TOKEN: "{{ vault_token }}"
+         LOG_LEVEL: "info"
+      entrypoint: "/usr/local/bin/python"
+      command:
+        - "-m"
+        - "zopsm.counter.run"
+      etc_hosts: "{{ vault_host_ip }}"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      state: started
+
+  - name: run notifier container
+    docker_container:
+      name: "{{ notifier }}"
+      image: zetaops/zlogger
+      api_version: 1.32
+      restart_policy: unless-stopped
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "zopsm"
+         RABBIT_VHOST: "zopsm"
+         RABBIT_EXCHANGE: "inter_comm"
+         VAULT_WORKING_PATH: "tokens"
+         VAULT_DEV_TOKEN: "{{ vault_token }}"
+         LOG_LEVEL: "info"
+      etc_hosts: "{{ vault_host_ip }}"
+      entrypoint: "/usr/local/bin/python"
+      command:
+        - "-m"
+        - "zopsm.log_notifier.log_notifier"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      state: started
+
+  - name: run gateway container
+    docker_container:
+      name: "{{ gateway }}"
+      image: zetaops/gw
+      api_version: 1.32
+      restart_policy: unless-stopped
+      ports:
+        - "{{ gateway_port }}:8888"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip }}"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ gateway }}"
+         CONTAINER_PORT: "{{ gateway_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "zopsm"
+         RABBIT_VHOST: "zopsm"
+         RABBIT_EXCHANGE: "inter_comm"
+         VAULT_WORKING_PATH: "tokens"
+         VAULT_DEV_TOKEN: "{{ vault_token }}"
+         LOG_LEVEL: "info"
+         REDIS_DB: "{{ redis_db }}"
+      state: started
+
+  - name: run push container
+    docker_container:
+      name: "{{ push }}"
+      image: zetaops/push
+      api_version: 1.32
+      restart_policy: unless-stopped
+      ports:
+        - "{{ push_port }}:9500"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip }}"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ push }}"
+         CONTAINER_PORT: "{{ push_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "zopsm"
+         RABBIT_VHOST: "zopsm"
+         RABBIT_EXCHANGE: "inter_comm"
+         VAULT_WORKING_PATH: "tokens"
+         VAULT_DEV_TOKEN: "{{ vault_token }}"
+         LOG_LEVEL: "info"
+         REDIS_DB: "{{ redis_db }}"
+      state: started
+
+  - name: run auth container
+    docker_container:
+      name: "{{ auth }}"
+      image: zetaops/auth
+      api_version: 1.32
+      restart_policy: unless-stopped
+      ports:
+        - "{{ auth_port }}:8000"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip }}"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ auth }}"
+         CONTAINER_PORT: "{{ auth_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "zopsm"
+         RABBIT_VHOST: "zopsm"
+         RABBIT_EXCHANGE: "inter_comm"
+         VAULT_WORKING_PATH: "tokens"
+         VAULT_DEV_TOKEN: "{{ vault_token }}"
+         LOG_LEVEL: "info"
+         REDIS_DB: "{{ redis_db }}"
+      state: started
+
+  - name: run mda container
+    docker_container:
+      name: "{{ mda }}"
+      image: zetaops/zopsm-mda
+      api_version: 1.32
+      restart_policy: unless-stopped
+      ports:
+        - "{{ mda_port }}:9000"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip }}"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ mda }}"
+         CONTAINER_PORT: "{{ mda_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "zopsm"
+         RABBIT_VHOST: "zopsm"
+         RABBIT_EXCHANGE: "inter_comm"
+         VAULT_WORKING_PATH: "tokens"
+         VAULT_DEV_TOKEN: "{{ vault_token }}"
+         LOG_LEVEL: "info"
+         REDIS_DB: "{{ redis_db }}"
+      state: started
+
+  - name: run worker container
+    docker_container:
+      name: "{{ worker }}"
+      image: zetaops/zmta
+      api_version: 1.32
+      restart_policy: unless-stopped
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip }}"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ worker }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         WORKING_ENVIRONMENT: "zopsm"
+         RABBIT_VHOST: "zopsm"
+         RABBIT_EXCHANGE: "inter_comm"
+         VAULT_WORKING_PATH: "tokens"
+         VAULT_DEV_TOKEN: "{{ vault_token }}"
+         LOG_LEVEL: "info"
+         REDIS_DB: "{{ redis_db }}"
+      state: started
+
+  - name: run saas container
+    docker_container:
+      name: "{{ saas }}"
+      image: zetaops/saas
+      api_version: 1.32
+      restart_policy: unless-stopped
+      ports:
+        - "{{ saas_port }}:10000"
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip }}"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ saas }}"
+         CONTAINER_PORT: "{{ saas_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         DB_HOST: "{{ hostvars[groups['postgres'][0]].ansible_ssh_host }}"
+         #DB_USER: 'zopsm'
+         #DB_PASSWORD: 'ZeiXier2aquoh1Cipoo3aiG5go7PhooYPeerach3'
+         DB_NAME: 'zopsm'
+         DB_PORT: '5432'
+         SECRET_KEY: 'gS2vvPu6ST552CnR8qk8zJShmcnqz73pZCPVbI9hQJu89CQLbJfxdJnW4GWuyoDgWNA'
+         WORKING_ENVIRONMENT: "zopsm"
+         RABBIT_VHOST: "zopsm"
+         RABBIT_EXCHANGE: "inter_comm"
+         VAULT_WORKING_PATH: "tokens"
+         VAULT_DEV_TOKEN: "{{ vault_token }}"
+         LOG_LEVEL: "info"
+         REDIS_DB: "{{ redis_db }}"
+      state: started
+
+
+  - name: run saas container
+    docker_container:
+      name: "migrater"
+      image: zetaops/saas
+      api_version: 1.32
+      volumes:
+        - "/home/ubuntu/zopsm:/usr/local/lib/python3.6/site-packages/zopsm"
+        - '/home/ubuntu/bb:/usr/local/share/ca-certificates/'
+      etc_hosts: "{{ vault_host_ip }}"
+      env:
+         CONSUL_HOST:  "{{ ansible_default_ipv4.address }}"
+         CONTAINER_NAME: "{{ saas }}"
+         CONTAINER_PORT: "{{ saas_port }}"
+         DOCKER_HOST_IPV4: "{{ ansible_default_ipv4.address }}"
+         DB_HOST: "{{ hostvars[groups['postgres'][0]].ansible_ssh_host }}"
+         #DB_USER: 'zopsm'
+         #DB_PASSWORD: 'ZeiXier2aquoh1Cipoo3aiG5go7PhooYPeerach3'
+         DB_NAME: 'zopsm'
+         DB_PORT: '5432'
+         SECRET_KEY: 'gS2vvPu6ST552CnR8qk8zJShmcnqz73pZCPVbI9hQJu89CQLbJfxdJnW4GWuyoDgWNA'
+         WORKING_ENVIRONMENT: "zopsm"
+         RABBIT_VHOST: "zopsm"
+         RABBIT_EXCHANGE: "inter_comm"
+         VAULT_WORKING_PATH: "tokens"
+         VAULT_DEV_TOKEN: "{{ vault_token }}"
+         LOG_LEVEL: "info"
+         REDIS_DB: "{{ redis_db }}"
+      entrypoint: "/usr/local/bin/python3"
+      command:
+         - "/usr/local/lib/python3.6/site-packages/zopsm/saas/manage.py"
+         - "reset"
+      state: started
+
+
+
+  - name: run nginx container
+    docker_container:
+      name: "{{ nginx }}"
+      image: "nginx:stable-alpine"
+      api_version: 1.32
+      restart_policy: unless-stopped
+      volumes:
+        - "/opt/zopsm_docs/dist:/usr/share/nginx/html:ro"
+      ports:
+        - "{{ nginx_port }}:80"
+      state: started
+
+  - name: register nginx with an http check
+    consul:
+      host: "{{ ansible_default_ipv4.address }}"
+      service_name: nginx
+      service_id: "{{ nginx }}"
+      service_address: "{{ ansible_default_ipv4.address }}"
+      service_port: "{{ nginx_port }}"
+      interval: 60s
+      check_name: nginx
+      check_id: "{{ nginx }}"
+      http: http://{{ ansible_default_ipv4.address }}:{{ nginx_port }}/status
+      state: present
+
+  - import_tasks: remove_containers.yml
+    ignore_errors: yes
+
+
+  - name: create zopsm_docs folder
+    file:
+      dest: /opt/zopsm_docs/dist
+      state: directory
+
+  - name: create nginx status file for consul check
+    file:
+      dest: /opt/zopsm_docs/dist/status
+      state: touch
+
+  - name: copy index.html
+    copy:
+      src: /buildbot/container_builder/build/zopsm/docs/doc.zops.io/index.html
+      dest: /opt/zopsm_docs/dist
+
+  - name: create css folder 
+    file:
+      dest: /opt/zopsm_docs/dist/css
+      state: directory
+
+  - name: get bootstrap.min.js
+    copy:
+      src: /buildbot/container_builder/build/zopsm/docs/doc.zops.io/css/style.css
+      dest: /opt/zopsm_docs/dist/css
+
+  - name: get bootstrap.min.js
+    copy:
+      src: /buildbot/container_builder/build/zopsm/docs/doc.zops.io/bootstrap.min.js
+      dest: /opt/zopsm_docs/dist
+
+  - name: get bootstrap.min.css
+    copy:
+      src: /buildbot/container_builder/build/zopsm/docs/doc.zops.io/bootstrap.min.css
+      dest: /opt/zopsm_docs/dist
+
+  - name: run push docs container
+    docker_container:
+      name: "{{ push_docs }}"
+      image: zetaops/zopsm_docs
+      api_version: 1.32
+      command: "push"
+      env:
+        GRIP_EXPORT: "yes"
+      cleanup: yes
+      volumes:
+        - "/opt/zopsm_docs:/zopsm_docs"
+      state: started
+
+  - name: run docbox container
+    docker_container:
+      name: "{{ push_docbox }}"
+      image: zetaops/zopsm_docbox
+      api_version: 1.32
+      env:
+        MD: "PUSH"
+      cleanup: yes
+      volumes:
+        - "/opt/zopsm_docs/dist:/dist"
+      state: started
+
+  - name: run roc docs container
+    docker_container:
+      name: "{{ roc_docs }}"
+      image: zetaops/zopsm_docs
+      api_version: 1.32
+      command: "roc"
+      env:
+        GRIP_EXPORT: "yes"
+      cleanup: yes
+      volumes:
+        - "/opt/zopsm_docs:/zopsm_docs"
+      state: started
+
+  - name: run docbox container
+    docker_container:
+      name: "{{ roc_docbox }}"
+      image: zetaops/zopsm_docbox
+      api_version: 1.32
+      env:
+        MD: "ROC"
+      cleanup: yes
+      volumes:
+        - "/opt/zopsm_docs/dist:/dist"
+      state: started
+
+  - name: run saas docs container
+    docker_container:
+      name: "{{ saas_docs }}"
+      image: zetaops/zopsm_docs
+      api_version: 1.32
+      command: "saas"
+      env:
+        GRIP_EXPORT: "yes"
+      cleanup: yes
+      volumes:
+        - "/opt/zopsm_docs:/zopsm_docs"
+      state: started
+
+  - name: run docbox container
+    docker_container:
+      name: "{{ saas_docbox }}"
+      image: zetaops/zopsm_docbox
+      api_version: 1.32
+      env:
+        MD: "SAAS"
+      cleanup: yes
+      volumes:
+        - "/opt/zopsm_docs/dist:/dist"
+      state: started
+
+  - name: run auth docs container
+    docker_container:
+      name: "{{ auth_docs }}"
+      image: zetaops/zopsm_docs
+      api_version: 1.32
+      command: "auth"
+      env:
+        GRIP_EXPORT: "yes"
+      cleanup: yes
+      volumes:
+        - "/opt/zopsm_docs:/zopsm_docs"
+      state: started
+
+  - name: run docbox container
+    docker_container:
+      name: "{{ auth_docbox }}"
+      image: zetaops/zopsm_docbox
+      api_version: 1.32
+      env:
+        MD: "AUTH"
+      cleanup: yes
+      volumes:
+        - "/opt/zopsm_docs/dist:/dist"
+      state: started
+
+
+  - name: stop and remove push docbox
+    shell: docker stop {{ ansible_local.zopsm.container.push_docbox }} && docker rm {{ ansible_local.zopsm.container.push_docbox }}
+    ignore_errors: yes
+
+  - name: stop and remove roc_docbox
+    shell: docker stop {{ ansible_local.zopsm.container.roc_docbox }} && docker rm {{ ansible_local.zopsm.container.roc_docbox }}
+    ignore_errors: yes
+
+  - name: stop and remove saas_docbox
+    shell: docker stop {{ ansible_local.zopsm.container.saas_docbox }} && docker rm {{ ansible_local.zopsm.container.saas_docbox }}
+    ignore_errors: yes
+
+  - name: stop and remove auth_docbox
+    shell: docker stop {{ ansible_local.zopsm.container.auth_docbox }} && docker rm {{ ansible_local.zopsm.container.auth_docbox }}
+    ignore_errors: yes
+
+  - name: stop and remove push docs
+    shell: docker stop {{ ansible_local.zopsm.container.push_docs }} && docker rm {{ ansible_local.zopsm.container.push_docs }}
+    ignore_errors: yes
+    tags:
+      - remove_docs
+
+  - name: stop and remove roc docs
+    shell: docker stop {{ ansible_local.zopsm.container.roc_docs }} && docker rm {{ ansible_local.zopsm.container.roc_docs }}
+    ignore_errors: yes
+    tags:
+      - remove_docs
+
+  - name: stop and remove saas_docs
+    shell: docker stop {{ ansible_local.zopsm.container.saas_docs }} && docker rm {{ ansible_local.zopsm.container.saas_docs }}
+    ignore_errors: yes
+    tags:
+      - remove_saas_docs
+
+  - name: stop and remove auth_docs
+    shell: docker stop {{ ansible_local.zopsm.container.auth_docs }} && docker rm {{ ansible_local.zopsm.container.auth_docs }}
+    ignore_errors: yes
+    tags:
+      - remove_auth_docs
+
+  - name: write /etc/ansible/facts.d/zopsm.fact
+    blockinfile:
+      dest: /etc/ansible/facts.d/zopsm.fact
+      block: |
+        [container]
+        gateway={{ gateway }}
+        auth={{ auth }}
+        worker={{ worker }}
+        mda={{ mda }}
+        push={{ push }}
+        saas={{ saas }}
+        push_docs={{ push_docs }}
+        roc_docs={{ roc_docs }}
+        saas_docs={{ saas_docs }}
+        auth_docs={{ auth_docs }}
+        push_docbox={{ push_docbox }}
+        roc_docbox={{ roc_docbox }}
+        saas_docbox={{ saas_docbox }}
+        auth_docbox={{ auth_docbox }}
+        zlogger={{ zlogger }}
+        counter={{ counter }}
+        notifier={{ notifier }}
+      state: present
