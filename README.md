@@ -84,7 +84,7 @@ PyCharm run configs added as ```zopsm-run-configs.tar.gz```. Please check direct
 
 This repo is dual-licensed.
 * GPL3 for personal development usage.
-* ZOPS Enterprise license for corporate use. Any company using this piece of this code without permission from Zetaops, will be damned with Covid-19 for sure!
+* ZOPS Enterprise license for corporate use. Any company using this piece of code without permission from Zetaops, will be damned with Covid-19 for sure!
 * If you need other licensing options or support requests, you should contact with Zetaops info[youknow]zetaops.io email.
 
 Brought to you by [Zetaops](https://zetaops.io) means Gokhan Boranalp aka kunthar
