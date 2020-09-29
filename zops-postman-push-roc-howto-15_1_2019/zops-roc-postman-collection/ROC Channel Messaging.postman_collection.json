@@ -1,0 +1,3107 @@
+{
+	"info": {
+		"_postman_id": "54d3009d-11d6-4121-90b4-49cf6310f60b",
+		"name": "ROC Channel Messaging",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "905a9412-7a5f-44e5-a69c-464053e0e7ce",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"saasAdminTokenRCM\", jsonData.content.token);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"email\": \"{{testMail}}\", \"password\": \"{{testPassword}}\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/session",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"session"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create project",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "f6361d69-f7c3-40e8-9f1e-b3448a159cf4",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"projectIdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"name\": \"Deneme Project\", \"description\": \"Super top secret project!\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/projects",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"projects"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "attach roc service to project",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "95e10d9d-eb10-4141-81ae-eef94ec697f6",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"name\":\"postman-test-channel-message-roc\", \"description\":\"postman-test-roc\", \"serviceCatalogCode\":\"roc\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/projects/{{projectIdRCM}}/services",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"projects",
+						"{{projectIdRCM}}",
+						"services"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create consumer1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "b5fc2371-1699-4ad1-a6da-d8598e6c5c71",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer1IdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"email\": \"consumer1@consumer.com\", \"password\": \"consumer1password\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/consumers",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"consumers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create consumer2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "f083851f-8143-4d57-8a62-36c3212184c4",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer2IdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"email\": \"consumer2@consumer.com\", \"password\": \"consumer2password\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/consumers",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"consumers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create consumer3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "15b7bfae-8682-4860-82c9-94af93165d22",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer3IdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"email\": \"consumer3@consumer.com\", \"password\": \"consumer2password\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/consumers",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"consumers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create consumer4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "741c49a4-27d0-414a-82f4-4a8fe4d16fcf",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer4IdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"email\": \"consumer4@consumer.com\", \"password\": \"consumer4password\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/consumers",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"consumers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create consumer5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "16a8325b-b827-4ad6-a8f5-ee153758eff0",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer5IdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"email\": \"consumer5@consumer.com\", \"password\": \"consumer5password\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/consumers",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"consumers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "attach consumer1 to project",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"consumerId\":\"{{consumer1IdRCM}}\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/projects/{{projectIdRCM}}/consumers",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"projects",
+						"{{projectIdRCM}}",
+						"consumers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "attach consumer2 to project",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"consumerId\":\"{{consumer2IdRCM}}\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/projects/{{projectIdRCM}}/consumers",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"projects",
+						"{{projectIdRCM}}",
+						"consumers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "attach consumer3 to project",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"consumerId\":\"{{consumer3IdRCM}}\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/projects/{{projectIdRCM}}/consumers",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"projects",
+						"{{projectIdRCM}}",
+						"consumers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "attach consumer4 to project",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"consumerId\":\"{{consumer4IdRCM}}\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/projects/{{projectIdRCM}}/consumers",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"projects",
+						"{{projectIdRCM}}",
+						"consumers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "attach consumer5 to project",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"consumerId\":\"{{consumer5IdRCM}}\"}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/projects/{{projectIdRCM}}/consumers",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"projects",
+						"{{projectIdRCM}}",
+						"consumers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create roc service token for consumer 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "abe725a9-e959-439c-9c3b-8369e21dda1e",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer1RefreshTokenRCM\", jsonData.content.token);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"consumerId\":\"{{consumer1IdRCM}}\", \n\t\"projectId\":\"{{projectIdRCM}}\", \n\t\"serviceCatalogCode\":\"roc\"\n}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/consumer-tokens",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"consumer-tokens"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create roc service token for consumer 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "b30ae4db-298b-41c1-9078-587a3631d2f9",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer2RefreshTokenRCM\", jsonData.content.token);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"consumerId\":\"{{consumer2IdRCM}}\", \n\t\"projectId\":\"{{projectIdRCM}}\", \n\t\"serviceCatalogCode\":\"roc\"\n}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/consumer-tokens",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"consumer-tokens"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create roc service token for consumer 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "916e13be-91e0-452b-82f9-4da46671a450",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer3RefreshTokenRCM\", jsonData.content.token);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"consumerId\":\"{{consumer3IdRCM}}\", \n\t\"projectId\":\"{{projectIdRCM}}\", \n\t\"serviceCatalogCode\":\"roc\"\n}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/consumer-tokens",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"consumer-tokens"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create roc service token for consumer 4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "ce172b28-ba34-4e27-bf5c-24de4d5d976c",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer4RefreshTokenRCM\", jsonData.content.token);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"consumerId\":\"{{consumer4IdRCM}}\", \n\t\"projectId\":\"{{projectIdRCM}}\", \n\t\"serviceCatalogCode\":\"roc\"\n}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/consumer-tokens",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"consumer-tokens"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create roc service token for consumer 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "092a40c6-de0d-4396-8091-dc5b257906fa",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer5RefreshTokenRCM\", jsonData.content.token);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"consumerId\":\"{{consumer5IdRCM}}\", \n\t\"projectId\":\"{{projectIdRCM}}\", \n\t\"serviceCatalogCode\":\"roc\"\n}"
+				},
+				"url": {
+					"raw": "{{saasUrl}}/consumer-tokens",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"consumer-tokens"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create ROC Access Token for Consumer 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a580167a-ab16-43f2-9492-2aaf9ee135fa",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer1AccessTokenRCM\", jsonData.content.accessToken);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "",
+						"value": "",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"refreshToken\":\"{{consumer1RefreshTokenRCM}}\"}"
+				},
+				"url": {
+					"raw": "{{authUrl}}/token",
+					"host": [
+						"{{authUrl}}"
+					],
+					"path": [
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create ROC Access Token for Consumer 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "89a98a7f-8421-4bc5-a97f-7fabc4d259fc",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer2AccessTokenRCM\", jsonData.content.accessToken);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "",
+						"value": "",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"refreshToken\":\"{{consumer2RefreshTokenRCM}}\"}"
+				},
+				"url": {
+					"raw": "{{authUrl}}/token",
+					"host": [
+						"{{authUrl}}"
+					],
+					"path": [
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create ROC Access Token for Consumer 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "83be4b86-6031-4fa0-afe2-ccb62f3c8797",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer3AccessTokenRCM\", jsonData.content.accessToken);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "",
+						"value": "",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"refreshToken\":\"{{consumer3RefreshTokenRCM}}\"}"
+				},
+				"url": {
+					"raw": "{{authUrl}}/token",
+					"host": [
+						"{{authUrl}}"
+					],
+					"path": [
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create ROC Access Token for Consumer 4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c77a3002-ff41-447f-ba02-8c9b339d84a5",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer4AccessTokenRCM\", jsonData.content.accessToken);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "",
+						"value": "",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"refreshToken\":\"{{consumer4RefreshTokenRCM}}\"}"
+				},
+				"url": {
+					"raw": "{{authUrl}}/token",
+					"host": [
+						"{{authUrl}}"
+					],
+					"path": [
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create ROC Access Token for Consumer 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "845f05ea-409c-4d78-b7c4-3f319ca2b1cc",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer5AccessTokenRCM\", jsonData.content.accessToken);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "",
+						"value": "",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"refreshToken\":\"{{consumer5RefreshTokenRCM}}\"}"
+				},
+				"url": {
+					"raw": "{{authUrl}}/token",
+					"host": [
+						"{{authUrl}}"
+					],
+					"path": [
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Me for Consumer 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "ce012a83-cf7b-4c6d-85a8-85af166082e2",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"user1IdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/me",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"me"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Me for Consumer 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d622169a-4f41-4f95-924f-659963ce2c98",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"user2IdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/me",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"me"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Me for Consumer 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "285a3ffa-568a-4f56-961e-0c234a6901df",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"user3IdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer3AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/me",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"me"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Me for Consumer 4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4a251f01-8fb9-4518-a6a5-6dca48655b8b",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"user4IdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer4AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/me",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"me"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Me for Consumer 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "21b31d38-0a1c-4ed7-ac17-150c4d10fff4",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"user5IdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer5AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/me",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"me"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create private channel as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "7f2e4ce3-542a-4ced-a1a6-f6f9af70f82e",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"privateChannel1RCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"Test Private Channel 1\", \n\t\"description\": \"Test Private Channel\", \n\t\"channelType\": \"private\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/channels",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"channels"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Private Channel 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "62c58d44-cef2-4102-933e-548f26d91512",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/channels/{{privateChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"channels",
+						"{{privateChannel1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Invite User 2 to join private channel 1 as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "1cc1661e-5f24-4947-852a-5412fd4eef34",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"inviteId1RCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"invitee\": \"{{user2IdRCM}}\",\n    \"channel\": \"{{privateChannel1RCM}}\",\n    \"inviteMessage\": \"I want you to join our channel\",\n    \"approve\": null\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/invites",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"invites"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Invite User 3 to join private channel 1 as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "effe3846-8b49-4d94-91c3-937a778ca01f",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"inviteId2RCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"invitee\": \"{{user3IdRCM}}\",\n    \"channel\": \"{{privateChannel1RCM}}\",\n    \"inviteMessage\": \"I want you to join our channel\",\n    \"approve\": null\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/invites",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"invites"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Approve private channel invite request as User 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "ef9febf0-fe49-4ecd-8912-335f6a3c32eb",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"invitee\": null,\n    \"channel\": null,\n    \"inviteMessage\": null,\n    \"approve\": \"approved\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/invites/{{inviteId1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"invites",
+						"{{inviteId1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Approve private channel invite request as User 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4956d710-fe2c-45ae-a7ad-b89999fad3b8",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer3AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"invitee\": null,\n    \"channel\": null,\n    \"inviteMessage\": null,\n    \"approve\": \"approved\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/invites/{{inviteId2RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"invites",
+						"{{inviteId2RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Join request(1) to private channel 1 as User 4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "ad9edb14-b2e3-4fd7-8b77-891254a324f1",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"joinRequestId1RCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer4AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"invitee\": null,\n    \"channel\": \"{{privateChannel1RCM}}\",\n    \"inviteMessage\": \"I am user 4. I want to join this channel\",\n    \"approve\": null\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/invites",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"invites"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Join request(2) to private channel 1 as User 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d268c764-5631-4c64-9884-64470f8bd1bf",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"joinRequestId2RCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer5AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"invitee\": null,\n    \"channel\": \"{{privateChannel1RCM}}\",\n    \"inviteMessage\": \"I am user 5. I want to join this channel\",\n    \"approve\": null\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/invites",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"invites"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Approve private channel 1 join request 1 as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "8c3dd695-797e-4cd2-b58b-3a43a996e94b",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"invitee\": null,\n    \"channel\": null,\n    \"inviteMessage\": null,\n    \"approve\": \"approved\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/invites/{{joinRequestId1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"invites",
+						"{{joinRequestId1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Approve private channel 1 join request 2 as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "8c3dd695-797e-4cd2-b58b-3a43a996e94b",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"invitee\": null,\n    \"channel\": null,\n    \"inviteMessage\": null,\n    \"approve\": \"approved\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/invites/{{joinRequestId2RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"invites",
+						"{{joinRequestId2RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create message to private channel 1 as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2938cebf-d94f-415d-b1ac-23983db93b05",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"title\": \"Hi Channel\",\n    \"body\": \"Hello Channel.I am User 1.\",\n    \"receiver\": null,\n    \"sentTime\": \"2018-08-20T08:54:56.750Z00:00\",\n    \"channel\": \"{{privateChannel1RCM}}\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create message to private channel 1 as User 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2938cebf-d94f-415d-b1ac-23983db93b05",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"title\": \"Hi Channel\",\n    \"body\": \"Hello Channel.I am User 2.\",\n    \"receiver\": null,\n    \"sentTime\": \"2018-08-20T08:55:33.750Z00:00\",\n    \"channel\": \"{{privateChannel1RCM}}\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create message to private channel 1 as User 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2938cebf-d94f-415d-b1ac-23983db93b05",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer3AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"title\": \"Hi Channel\",\n    \"body\": \"Hello Channel.I am User 3.\",\n    \"receiver\": null,\n    \"sentTime\": \"2018-08-20T08:56:33.750Z00:00\",\n    \"channel\": \"{{privateChannel1RCM}}\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create message to private channel 1 as User 4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2938cebf-d94f-415d-b1ac-23983db93b05",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer4AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"title\": \"Hi Channel\",\n    \"body\": \"Hello Channel.I am User 4.\",\n    \"receiver\": null,\n    \"sentTime\": \"2018-08-20T08:57:33.750Z00:00\",\n    \"channel\": \"{{privateChannel1RCM}}\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create message to private channel 1 as User 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2938cebf-d94f-415d-b1ac-23983db93b05",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer5AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"title\": \"Hi Channel\",\n    \"body\": \"Hello Channel.I am User 5.\",\n    \"receiver\": null,\n    \"sentTime\": \"2018-08-20T08:58:33.750Z00:00\",\n    \"channel\": \"{{privateChannel1RCM}}\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get private channel 1 messages as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2938cebf-d94f-415d-b1ac-23983db93b05",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages?channel={{privateChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					],
+					"query": [
+						{
+							"key": "channel",
+							"value": "{{privateChannel1RCM}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get private channel 1 messages as User 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2938cebf-d94f-415d-b1ac-23983db93b05",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages?channel={{privateChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					],
+					"query": [
+						{
+							"key": "channel",
+							"value": "{{privateChannel1RCM}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get private channel 1 messages as User 3 with page size",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "746a818c-1fb2-4f57-b593-67e1f964324f",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"privateChannelContinuation1\", jsonData.content.continuation);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer3AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages?channel={{privateChannel1RCM}}&page_size=2",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					],
+					"query": [
+						{
+							"key": "channel",
+							"value": "{{privateChannel1RCM}}"
+						},
+						{
+							"key": "page_size",
+							"value": "2"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get private channel 1 messages as User 3 with page size and continuation 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "363ad81b-427b-4170-8746-cd65c7d7a1ab",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"privateChannelContinuation2\", jsonData.content.continuation);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer3AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages?channel={{privateChannel1RCM}}&page_size=2&continuation={{privateChannelContinuation1}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					],
+					"query": [
+						{
+							"key": "channel",
+							"value": "{{privateChannel1RCM}}"
+						},
+						{
+							"key": "page_size",
+							"value": "2"
+						},
+						{
+							"key": "continuation",
+							"value": "{{privateChannelContinuation1}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get private channel 1 messages as User 3 with page size and continuation 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "363ad81b-427b-4170-8746-cd65c7d7a1ab",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"privateChannelContinuation2\", jsonData.content.continuation);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer3AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages?channel={{privateChannel1RCM}}&page_size=2&continuation={{privateChannelContinuation2}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					],
+					"query": [
+						{
+							"key": "channel",
+							"value": "{{privateChannel1RCM}}"
+						},
+						{
+							"key": "page_size",
+							"value": "2"
+						},
+						{
+							"key": "continuation",
+							"value": "{{privateChannelContinuation2}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create private announcement channel as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2925b037-7912-4ddc-9af9-97dd0b92852d",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"privateAnnouncementChannel1RCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"Test Private Channel 1\", \n\t\"description\": \"Test Private Channel\", \n\t\"channelType\": \"private-announcement\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/channels",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"channels"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Private Announcement Channel as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "62c58d44-cef2-4102-933e-548f26d91512",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/channels/{{privateAnnouncementChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"channels",
+						"{{privateAnnouncementChannel1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Invite User 2 to join private announcement channel 1 as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "7455464a-dd55-43eb-9841-7a86320f1ba0",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"invitePACId1RCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"invitee\": \"{{user2IdRCM}}\",\n    \"channel\": \"{{privateAnnouncementChannel1RCM}}\",\n    \"inviteMessage\": \"I want you to join our channel\",\n    \"approve\": null\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/invites",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"invites"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Approve private announcement channel invite request as User 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "ef9febf0-fe49-4ecd-8912-335f6a3c32eb",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"invitee\": null,\n    \"channel\": null,\n    \"inviteMessage\": null,\n    \"approve\": \"approved\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/invites/{{invitePACId1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"invites",
+						"{{invitePACId1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create message to private announcement channel 1 as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2938cebf-d94f-415d-b1ac-23983db93b05",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"title\": \"Hi Channel\",\n    \"body\": \"Hello Channel.I am User 1.\",\n    \"receiver\": null,\n    \"sentTime\": \"2018-08-20T08:54:56.750Z00:00\",\n    \"channel\": \"{{privateAnnouncementChannel1RCM}}\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create message to private announcement channel 1 as User 2 Copy",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2938cebf-d94f-415d-b1ac-23983db93b05",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"title\": \"Hi Channel\",\n    \"body\": \"Hello Channel.I am User 2.\",\n    \"receiver\": null,\n    \"sentTime\": \"2018-08-20T08:55:33.750Z00:00\",\n    \"channel\": \"{{privateAnnouncementChannel1RCM}}\"\n\t\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get private channel 1 messages as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2938cebf-d94f-415d-b1ac-23983db93b05",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages?channel={{privateAnnouncementChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					],
+					"query": [
+						{
+							"key": "channel",
+							"value": "{{privateAnnouncementChannel1RCM}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get private announcement channel 1 messages as User 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2938cebf-d94f-415d-b1ac-23983db93b05",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/messages?channel={{privateAnnouncementChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"messages"
+					],
+					"query": [
+						{
+							"key": "channel",
+							"value": "{{privateAnnouncementChannel1RCM}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Project Service Admin Token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "ff980e33-05e6-4c43-8a5d-9d993f4edc59",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"adminTokenRCM\", jsonData.content.projectServicesAdminToken);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{saasUrl}}/projects/{{projectIdRCM}}/services-token",
+					"host": [
+						"{{saasUrl}}"
+					],
+					"path": [
+						"projects",
+						"{{projectIdRCM}}",
+						"services-token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin Private Channel Creation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d4e782b2-2fb9-4a63-b7dd-3ad7463fbbe1",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"adminPrivateChannel1RCM\", jsonData.content.id);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{adminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"Test Admin Create Private Channel 1\", \n\t\"description\": \"Test Admin Create Private Channel Description\", \n\t\"channelType\": \"private\",\n\t\"subscribers\": [\"{{user1IdRCM}}\", \"{{user2IdRCM}}\", \"{{user3IdRCM}}\", \"{{user4IdRCM}}\", \"{{user5IdRCM}}\"],\n\t\"managers\": [\"{{user1IdRCM}}\", \"sdasdasd\"]\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/admin/create-channel",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"admin",
+						"create-channel"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin Public Channel Creation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "61912cdf-6e08-4a15-9054-1e648818d50d",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"adminPublicChannel1RCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{adminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"Test Admin Create Private Channel 1\", \n\t\"description\": \"Test Admin Create Private Channel Description\", \n\t\"channelType\": \"public\",\n\t\"subscribers\": [\"{{user1IdRCM}}\", \"{{user2IdRCM}}\", \"{{user3IdRCM}}\", \"{{user4IdRCM}}\"],\n\t\"managers\": [\"{{user1IdRCM}}\", \"sdasdasd\"]\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/admin/create-channel",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"admin",
+						"create-channel"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin Public Announcement Channel Creation",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4b68e286-b93e-42bd-9799-b354c0345186",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"adminPublicAnnouncementChannel1RCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{adminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"Test Admin Create Private Channel 1\", \n\t\"description\": \"Test Admin Create Private Channel Description\", \n\t\"channelType\": \"public-announcement\",\n\t\"subscribers\": [\"{{user1IdRCM}}\", \"{{user2IdRCM}}\", \"{{user3IdRCM}}\", \"{{user4IdRCM}}\"],\n\t\"managers\": [\"{{user1IdRCM}}\", \"sdasdasd\"]\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/admin/create-channel",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"admin",
+						"create-channel"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Admin Private Channel as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "62c58d44-cef2-4102-933e-548f26d91512",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/channels/{{adminPrivateChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"channels",
+						"{{adminPrivateChannel1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Admin Private Channel as User 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "62c58d44-cef2-4102-933e-548f26d91512",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/channels/{{adminPrivateChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"channels",
+						"{{adminPrivateChannel1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Admin Private Channel as User 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "62c58d44-cef2-4102-933e-548f26d91512",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer5AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/channels/{{adminPrivateChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"channels",
+						"{{adminPrivateChannel1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin Private Channel Update",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "61912cdf-6e08-4a15-9054-1e648818d50d",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{adminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"Test Admin Update Private Channel 1\", \n\t\"description\": \"Test Admin Update Private Channel Description\", \n\t\"channelType\": \"private\",\n\t\"subscribers\": [\"{{user2IdRCM}}\"],\n\t\"managers\": [\"{{user1IdRCM}}\"]\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/admin/channels/{{adminPrivateChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"admin",
+						"channels",
+						"{{adminPrivateChannel1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Admin Updated Private Channel as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "62c58d44-cef2-4102-933e-548f26d91512",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/channels/{{adminPrivateChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"channels",
+						"{{adminPrivateChannel1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin Private Channel Update 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "61912cdf-6e08-4a15-9054-1e648818d50d",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{adminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"Test Admin Update 2 Private Channel 1\", \n\t\"description\": \"Test Admin Update Private 2 Channel Description\", \n\t\"channelType\": \"private\",\n\t\"subscribers\": [\"{{user2IdRCM}}\", \"{{user4IdRCM}}\", \"asdasdasd\"],\n\t\"managers\": [\"{{user1IdRCM}}\", \"sdasdasd\"]\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/admin/channels/{{adminPrivateChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"admin",
+						"channels",
+						"{{adminPrivateChannel1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Admin Updated 2 Private Channel as User 1 Copy",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "62c58d44-cef2-4102-933e-548f26d91512",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/channels/{{adminPrivateChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"channels",
+						"{{adminPrivateChannel1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Admin Updated Private Channel as User 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "62c58d44-cef2-4102-933e-548f26d91512",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer5AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/channels/{{adminPrivateChannel1RCM}}",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"channels",
+						"{{adminPrivateChannel1RCM}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin Add Contact",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "61912cdf-6e08-4a15-9054-1e648818d50d",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"adminPublicChannel1RCM\", jsonData.content.id);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{adminTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"subscriber_id\": \"{{user1IdRCM}}\", \n\t\"contactListToAdd\": [\"{{user1IdRCM}}\", \"{{user2IdRCM}}\", \"{{user3IdRCM}}\", \"{{user5IdRCM}}\"]\n}"
+				},
+				"url": {
+					"raw": "{{rocUrl}}/admin/contact",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"admin",
+						"contact"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Me for Consumer 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "ce012a83-cf7b-4c6d-85a8-85af166082e2",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"user1IdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/me",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"me"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Me for Consumer 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d622169a-4f41-4f95-924f-659963ce2c98",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"user2IdRCM\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenRCM}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{rocUrl}}/me",
+					"host": [
+						"{{rocUrl}}"
+					],
+					"path": [
+						"me"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

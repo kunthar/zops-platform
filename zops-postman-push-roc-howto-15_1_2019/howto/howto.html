@@ -1,0 +1,243 @@
+﻿<h1 id="zops-auth-push-ve-roc-akışları">ZOPS Auth, PUSH ve ROC Akışları</h1>
+
+
+
+<h2 id="auth">Auth</h2>
+
+<ul>
+<li>İlk olarak kullanıcı <strong>Zops</strong> üzerinde bir ““account”” oluşturmalıdır. <a href="%5bhttp://zops.io/signup%5d%28http://zops.io/signup%29">Signup</a> endpoint’ini kullanarak kendinize “account” oluşturabilirsiniz.</li>
+<li>Mail adresinize gelen linke tıklayarak “account” oluşturmayı kabul edersiniz. Tıklanılan link, sizi kullanıcı bilgilerinizi dolduracağınız bir ekrana yönlendirir.</li>
+<li>Gerekli alanları doldurduktan sonra ilgili “account”ta tanımlı bir admin hesabı oluşur.</li>
+<li>Sistem üzerinde işlem yapabilmek için (proje oluşturma, “consumer” oluşturma, “consumer”ları projelere ekleme gibi) geçerli bir token’a sahip olmanız gerekir. Bu tokeni alabilmek için <a href="%5bhttps://docs.zops.io/SAAS.html#loginresource%5d%28https://docs.zops.io/SAAS.html#loginresource%29">SAAS loginresource</a> adresinden yararlanabilirsiniz.</li>
+<li>Saas sistemi üzerinden geçerli token aldıktan sonra yapılacak requestlerde bu token kullanılması gerekir.</li>
+<li>Tokeni request headerinin “AUTHORIZATION” parametre değeri olarak kullanmanız gerekir.(Sistem üzerinde User token olarak bilinen bu tokenin kullanım süresi 1 haftadır. 1 Hafta sonunda geçerliliğini yitirir.)</li>
+<li>Daha sonra “account”a proje eklemeniz gerekir. Proje eklemek için <a href="%5bhttps://docs.zops.io/SAAS.html#project-create--list%5d%28https://docs.zops.io/SAAS.html#project-create--list%29">project-create–list</a> adresten yararlanabilirsiniz.</li>
+<li>Oluşturduğunuz projeye kullanmak istediğiniz servisleri(“roc”, “push) eklemeniz gerekir. Projeye servis eklemek için <a href="%5bhttps://docs.zops.io/SAAS.html#service-create%5d%28https://docs.zops.io/SAAS.html#service-create%29">service-create</a> ilgili adresten yararlanabilirsiniz.</li>
+<li>Projelerde kullanmak üzere “account”unuza “consumer” eklemeniz gerekir. Eklenilen “consumer”lar “account” seviyesindedir. “Consumer” eklemek için <a href="%5bhttps://docs.zops.io/SAAS.html#consumer-create--list%5d%28https://docs.zops.io/SAAS.html#consumer-create--list%29">consumer-create–list</a> adresinden yararlanabilirsiniz.</li>
+<li>“Account”a eklenen “consumer”ları projenizde kullanabilmek için proje ile “consumer”ı ilişkilendirmeniz gerekir. Siz özel olarak bir projeye ile “consumer”ı ilişkilendirmediğiniz sürece “consumer” projenin servislerini kullanamayacaktır. Proje ile “consumer”i ilişkilendirmek için <a href="%5bhttps://docs.zops.io/SAAS.html#project-consumer-create%5d%28https://docs.zops.io/SAAS.html#project-consumer-create%29">consumer-create</a> adresinden yararlanabilirsiniz.</li>
+<li>Daha sonra “consumer”larin proje servislerini kullanabilmesi için token(Saas “consumer” refresh token. Bu tokenin süresi 60sn dir.) üretmeniz gerekir. Bu tokeni hangi service icin alıyorsak request bodysinde ekliyoruz. Aldığımız token belirli bir servis içindir. Bütün servisler için kullanılamaz. Gerekli dökümana <a href="%5bhttps://docs.zops.io/SAAS.html#consumer-token-create%5d%28https://docs.zops.io/SAAS.html#consumer-token-create%29">consumer-token-create</a> adresinden ulaşabilirsiniz.</li>
+<li>“Saas” servisinden aldığınız “consumer” refresh token ile “auth” servisine request göndererek refresh token ve access token alıyoruz. Auth servisinden alınan access token servise erişim için kullanılır. Süresi 3 saattir. Acess token ile birlikte gelen refresh tokeni access tokeni yenilemek için kullanabiliriz. Detaylı bilgi için bakınız <a href="%5bhttps://docs.zops.io/AUTH.html%5d%28https://docs.zops.io/AUTH.html%29">AUTH</a> .</li>
+</ul>
+
+
+
+<h2 id="push">PUSH</h2>
+
+<ul>
+<li>Auth servisinden alacağınız push/roc access tokeni ile ilgili servisleri kullanabilirsiniz.</li>
+<li>Push servisi içerisinde “consumer”lar “user” olarak tanımlıdır. Yazının ilerleyen bölümlerinde ve döküman içerisinde “consumer” “user” olarak anlatılmaktadır.</li>
+<li>Userların push servisini kullanabilmesi için ilk olarak client register etmeleri gerekir. Client eklenmemiş bir user push sistemi içerisinde tanımlı değildir. Lütfen bu uyarıyı dikkate alınız. Client register etmek için <a href="%5bhttps://docs.zops.io/PUSH.html#client-create--list%5d%28https://docs.zops.io/PUSH.html#client-create--list%29">client-create–list</a> adresinden yararlanabilirsiniz.</li>
+<li>Sistem üzerinde user ve clientları gruplandırmak için tag sistemi kullanılmaktadır. Tag tiplerimiz ‘key’, ‘key-value’ ve ‘multi’ dir. Tag değerlerimiz ‘int’, ‘float’ ve ‘str’ dir. Request örneklerini incelemek için <a href="%5bhttps://docs.zops.io/PUSH.html#tag-create--list%5d%28https://docs.zops.io/PUSH.html#tag-create--list%29">tag-create</a> adresinden yararlanabilirsiniz.</li>
+<li>Sistem içerisinde oluşturduğumuz taglari ’client’ ile bağdaştırabilirsiniz. Örneğin ‘role’ ismiyle oluşturduğunuz bir ‘multi’, ‘str’ tagı herhangi bir clienta ‘ogrenci’, ‘ogretmen’, ‘memur’ gibi bir değer ile atayabilirsiniz. Örnekler için <a href="%5bhttps://docs.zops.io/PUSH.html#client-tag-add--list%5d%28https://docs.zops.io/PUSH.html#client-tag-add--list%29">client-tag-add–list</a> adresinden yararlanabilirsiniz.</li>
+<li>Sistem içerisinde oluşturduğumuz taglari ’user’ ile bağdaştırabilirsiniz. Örneğin ‘sehir’ ismiyle oluşturduğunuz bir ‘multi’, ‘str’ tagı herhangi bir usera ‘izmir’, ‘istanbul’, ‘ankara’ gibi bir değer ile atayabilirsiniz. Örnekler için <a href="%5bhttps://docs.zops.io/PUSH.html#client-tag-add--list%5d%28https://docs.zops.io/PUSH.html#client-tag-add--list%29">client-tag-add–list</a> adresinden yararlanabilirsiniz.</li>
+<li>Daha sonra segment oluşturarak mesaj gönderme adımına geçebiliriz. Segmentleri daha önce oluşturduğumuz “tag”ların (user veya client) birleşiminden(<code>n</code>), kesişiminden(<code>U</code>), farkından(<code>-</code>) ve <code>&gt;, &lt;, =</code>gibi matematiksel simgeler ile oluşturabilirsiniz. Ayrıntılı bilgi için bakınız <a href="%5bhttps://docs.zops.io/PUSH.html#segment-create--create-bulk--list%5d%28https://docs.zops.io/PUSH.html#segment-create--create-bulk--list%29">segment-create–create-bulk–list</a></li>
+<li>Sistemimizden aldığınız segmentId(Mesaj request body “audience” parametresi) sini kullanarak mesaj gönderebiliriz. Mesaj request örneği için <a href="%5bhttps://docs.zops.io/PUSH.html#message-post--list%5d%28https://docs.zops.io/PUSH.html#message-post--list%29">message-post–list</a> adresinden faydalanabilirsiniz.</li>
+</ul>
+
+
+
+<h2 id="roc">ROC</h2>
+
+<ul>
+<li><p>ROC sistemi içerisinde consumerlar kullanıcı(subscriber) olarak tanımlanır.</p></li>
+<li><p>ROC servisini ilk defa kullanacak kullanıcılar için birinci adım “me” endpointi’dir. Bu endpoint aracılığıyla sisteme kendini tanıtır. (<em>Bu adım işletilmek zorundadır. Lütfen uyarıyı dikkate alınız</em>). Aynı zamanda bu endpoint’i kullanarak kendisi hakkında bilgi (contacts, channels, bannedChannels, bannedSubscribers, channelInvites, channelJoinRequests, contactRequestsIn, contactRequestsOut) alabilir. Bakınız <a href="%5b%E2%80%98https://gw.zops.io/v1/roc/me%27%28GET%29%5d%28https://doc.zops.io/%E2%80%98https://gw.zops.io/v1/roc/me%27%28GET%29">me</a>) ve <a href="%5bhttps://docs.zops.io/ROC.html#subscriber-retrieval%5d%28https://docs.zops.io/ROC.html#subscriber-retrieval%29">subscriber-retrieval</a></p></li>
+<li><p>Kişiler arası mesajlaşma için kullanıcıların contact kurmuş olması gerekir. Bunun için contact request göndermemiz veya var olan requesti kabul etmemiz gerekir. İki kullanıcı contact kurduktan sonra mesajlaşabilir.</p></li>
+<li><p>Mesajlaşmak istediğimiz kişiye contact request göndermemiz gerekir. (<a href="%5bhttps://gw.zops.io/v1/roc/contact-requests%5d%28https://gw.zops.io/v1/roc/contact-requests%29">https://gw.zops.io/v1/roc/contact-requests</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#contact-request-create--list%5d%28https://docs.zops.io/ROC.html#contact-request-create--list%29">https://docs.zops.io/ROC.html#contact-request-create–list</a>)</p></li>
+<li><p>Contact request list endpointi ile bize gelen contact requestlerini listeleyebiliriz. (<a href="%5bhttps://gw.zops.io/v1/roc/contact-requests%5d%28https://gw.zops.io/v1/roc/contact-requests%29">https://gw.zops.io/v1/roc/contact-requests</a> (GET), <a href="%5bhttps://docs.zops.io/ROC.html#contact-request-create--list%5d%28https://docs.zops.io/ROC.html#contact-request-create--list%29">https://docs.zops.io/ROC.html#contact-request-create–list</a>)</p></li>
+<li><p>Listelediğimiz contact requestlerini kabul etmek veya reddetmek için (<a href="%5bhttps://gw.zops.io/v1/roc/contact-requests/%7Binvite_id%7D%5d%28https://gw.zops.io/v1/roc/contact-requests/%7Binvite_id%7D%29">https://gw.zops.io/v1/roc/contact-requests/{invite_id}</a> (PUT), <a href="%5bhttps://docs.zops.io/ROC.html#contact-request-accept--reject%5d%28https://docs.zops.io/ROC.html#contact-request-accept--reject%29">https://docs.zops.io/ROC.html#contact-request-accept–reject</a>)</p></li>
+<li><p>Contact listemizde olan bir kişiye mesaj atabilmek için (<a href="%5bhttps://gw.zops.io/v1/roc/messages/%5d%28https://gw.zops.io/v1/roc/messages/%29">https://gw.zops.io/v1/roc/messages/</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#message-create--list%5d%28https://docs.zops.io/ROC.html#message-create--list%29">https://docs.zops.io/ROC.html#message-create–list</a>)</p></li>
+<li><p>Bir kullanıcıdan gelen mesajlara ulaşabilmek için (<a href="%5bhttps://gw.zops.io/v1/roc/messages?subscriber=%7B%7BsubscriberId%7D%5d%28https://gw.zops.io/v1/roc/messages?subscriber=%7B%7BsubscriberId%7D%29">https://gw.zops.io/v1/roc/messages?subscriber={{subscriberId}</a>} (GET), <a href="%5bhttps://docs.zops.io/ROC.html#message-create--list%5d%28https://docs.zops.io/ROC.html#message-create--list%29">https://docs.zops.io/ROC.html#message-create–list</a>)</p></li>
+</ul>
+
+<p>Grup mesajlaşması için;</p>
+
+<ul>
+<li>Kanal oluşturmak için (<a href="%5bhttps://gw.zops.io/v1/roc/channels%5d%28https://gw.zops.io/v1/roc/channels%29">https://gw.zops.io/v1/roc/channels</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#channel-list--create%5d%28https://docs.zops.io/ROC.html#channel-list--create%29">https://docs.zops.io/ROC.html#channel-list–create</a>)</li>
+<li>Kullanıcıyı kanala davet etmek veya kanala katılma talebi göndermek için (<a href="%5bhttps://gw.zops.io/v1/roc/invites%5d%28https://gw.zops.io/v1/roc/invites%29">https://gw.zops.io/v1/roc/invites</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#invitation-create%5d%28https://docs.zops.io/ROC.html#invitation-create%29">https://docs.zops.io/ROC.html#invitation-create</a>)</li>
+<li>Yetkili olarak kanala gelen katılma taleplerini kabul etmek - reddetmek için (<a href="%5bhttps://gw.zops.io/v1/roc/invites/%7B%7BjoinRequestId%7D%5d%28https://gw.zops.io/v1/roc/invites/%7B%7BjoinRequestId%7D%29">https://gw.zops.io/v1/roc/invites/{{joinRequestId}</a>} (PUT), <a href="%5bhttps://docs.zops.io/ROC.html#invitation-accept--reject--cancel%5d%28https://docs.zops.io/ROC.html#invitation-accept--reject--cancel%29">https://docs.zops.io/ROC.html#invitation-accept–reject–cancel</a>)</li>
+<li>Kanaldan gelen daveti kabul etmek - reddetmek için (<a href="%5bhttps://gw.zops.io/v1/roc/invites/%7B%7BinviteId%7D%5d%28https://gw.zops.io/v1/roc/invites/%7B%7BinviteId%7D%29">https://gw.zops.io/v1/roc/invites/{{inviteId}</a>} (PUT), <a href="%5bhttps://docs.zops.io/ROC.html#invitation-accept--reject--cancel%5d%28https://docs.zops.io/ROC.html#invitation-accept--reject--cancel%29">https://docs.zops.io/ROC.html#invitation-accept–reject–cancel</a>)</li>
+<li>Kanala mesaj göndermek için (<a href="%5bhttps://gw.zops.io/v1/roc/messages%5d%28https://gw.zops.io/v1/roc/messages%29">https://gw.zops.io/v1/roc/messages</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#message-create--list%5d%28https://docs.zops.io/ROC.html#message-create--list%29">https://docs.zops.io/ROC.html#message-create–list</a>)</li>
+<li>Kanal mesajlarını listelemek için (<a href="%5bhttps://gw.zops.io/v1/roc/messages?channel=%7B%7BchannelId%7D%5d%28https://gw.zops.io/v1/roc/messages?channel=%7B%7BchannelId%7D%29">https://gw.zops.io/v1/roc/messages?channel={{channelId}</a>} (GET), <a href="%5bhttps://docs.zops.io/ROC.html#message-create--list%5d%28https://docs.zops.io/ROC.html#message-create--list%29">https://docs.zops.io/ROC.html#message-create–list</a>)</li>
+</ul>
+
+<p>Burda yazan işlemler birebir mesajlaşma ve kanal mesajlaşması için uygulanması gereken en temel özelliklerdir. Bahsedilen kullanıcılar arası mesajlaşma ve kanal mesajlaşması adımları postman collection olarak eklenecektir.</p>
+
+<p>Ek olarak;</p>
+
+<ul>
+<li>Kullanıcının durumunu(status) almak ve değiştirmek için (<a href="%5bhttps://gw.zops.io/v1/roc/status%5d%28https://gw.zops.io/v1/roc/status%29">https://gw.zops.io/v1/roc/status</a> (GET, POST), <a href="%5bhttps://docs.zops.io/ROC.html#sending-and-retrieving-status%5d%28https://docs.zops.io/ROC.html#sending-and-retrieving-status%29">https://docs.zops.io/ROC.html#sending-and-retrieving-status</a>)</li>
+<li>Kanal bilgilerini alabilmek, kanalı güncelleyebilmek silebilmek için (<a href="%5bhttps://gw.zops.io/v1/roc/channels/%7B%7BchannelId%7D%5d%28https://gw.zops.io/v1/roc/channels/%7B%7BchannelId%7D%29">https://gw.zops.io/v1/roc/channels/{{channelId}</a>} (GET, PUT, DELETE), <a href="%5bhttps://docs.zops.io/ROC.html#channel-update--delete--retrieve%5d%28https://docs.zops.io/ROC.html#channel-update--delete--retrieve%29">https://docs.zops.io/ROC.html#channel-update–delete–retrieve</a>)</li>
+<li>Yetkili olarak bir kullanıcıyı kanaldan çıkarmak veya kanal üyesi olarak kanaldan çıkmak için (<a href="%5bhttps://gw.zops.io/v1/roc/channels/%7B%7BchannelId%7D%5d%28https://gw.zops.io/v1/roc/channels/%7B%7BchannelId%7D%29">https://gw.zops.io/v1/roc/channels/{{channelId}</a>}/subscribers/{{subscriberId}} (DELETE), <a href="%5bhttps://docs.zops.io/ROC.html#unsubscribe-from-a-channel-or-unsubscribe-a-subscriber-from-a-channel%5d%28https://docs.zops.io/ROC.html#unsubscribe-from-a-channel-or-unsubscribe-a-subscriber-from-a-channel%29">https://docs.zops.io/ROC.html#unsubscribe-from-a-channel-or-unsubscribe-a-subscriber-from-a-channel</a>)</li>
+<li>Bir kullanıcı olarak kanalı banlamak için veya kanal yetkilisi olarak bir kullanıcı banlamak için (<a href="%5bhttps://gw.zops.io/v1/roc/banned-channels%5d%28https://gw.zops.io/v1/roc/banned-channels%29">https://gw.zops.io/v1/roc/banned-channels</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#ban-channel-subscriber%5d%28https://docs.zops.io/ROC.html#ban-channel-subscriber%29">https://docs.zops.io/ROC.html#ban-channel-subscriber</a>)</li>
+<li>Kullanıcı silmek için (<a href="%5bhttps://gw.zops.io/v1/roc/contacts/%7B%7BsubscriberId%7D%5d%28https://gw.zops.io/v1/roc/contacts/%7B%7BsubscriberId%7D%29">https://gw.zops.io/v1/roc/contacts/{{subscriberId}</a>} (DELETE), <a href="%5bhttps://docs.zops.io/ROC.html#contact-delete%5d%28https://docs.zops.io/ROC.html#contact-delete%29">https://docs.zops.io/ROC.html#contact-delete</a>)</li>
+<li>Kullanıcı banlamak için (<a href="%5bhttps://gw.zops.io/v1/roc/banned-contacts%5d%28https://gw.zops.io/v1/roc/banned-contacts%29">https://gw.zops.io/v1/roc/banned-contacts</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#ban-subscriber%5d%28https://docs.zops.io/ROC.html#ban-subscriber%29">https://docs.zops.io/ROC.html#ban-subscriber</a>) <br>
+işlemleri yapılabilir.</li>
+</ul>
+
+<p>Admin Roc Kanal Yaratma ve Güncelleme İşlemi İçin;</p>
+
+<ul>
+<li>Öncelikle projemize ait admin service tokenini almamiz gerekmektedir. Bu tokeni <a href="https://saas.zops.io/api/v1/projects/">https://saas.zops.io/api/v1/projects/</a>{{projectId}}/services-token] (GET) adresinden alabilirsiniz. Bu token için expire suresi yoktur. Proje başına sadece bir adet yaratılabilir. Yenisini aldığınızda daha önce var olan token invalid hale getirilir.</li>
+<li>Daha sonra bu token ile roc servisinden kanal yaratabilirsiniz.Aşağıda örnek bir request bulunmaktadır. (<a href="%5bhttps://gw.zops.io/v1/roc/admin/create-channel%5d%28https://gw.zops.io/v1/roc/banned-contacts%29">https://gw.zops.io/v1/roc/admin/create-channel</a> (POST) </li>
+</ul>
+
+<pre class="prettyprint"><code class="language-curl hljs livecodeserver">curl -X POST \ <span class="hljs-keyword">https</span>://gw.zops.io/v1/roc/admin/<span class="hljs-built_in">create</span>-channel \ -H <span class="hljs-string">'AUTHORIZATION: Token AdminToken’ \ -H '</span>Content-Type: application/json<span class="hljs-string">' \ -d '</span>{ <span class="hljs-string">"name"</span>: <span class="hljs-string">"Test Admin Create Private Channel 1"</span>, <span class="hljs-string">"description"</span>: <span class="hljs-string">"Test Admin Create Private Channel Description"</span>, <span class="hljs-string">"channelType"</span>: <span class="hljs-string">"private"</span>, <span class="hljs-string">"subscribers"</span>: [<span class="hljs-string">"2e06406da329463d8a6c4dc31c0d864d"</span>, <span class="hljs-string">"d467b353b23c4e14a97df6dcd75a1b0a"</span>, <span class="hljs-string">"a75c7be7d2f14c3a8c91615ba2b0b80c"</span>, <span class="hljs-string">"475947b057ee45288e8a57946ab43bb6"</span>], <span class="hljs-string">"managers"</span>: [<span class="hljs-string">"2e06406da329463d8a6c4dc31c0d864d"</span>] }<span class="hljs-string">'</span></code></pre>
+
+<ul>
+<li>Roc sisteminde tanımlı olan bir kanalı admin kullanıcı olarak güncelleyebilirsiniz. <a href="https://gw.zops.io/v1/roc/admin/channels/">https://gw.zops.io/v1/roc/admin/channels/</a>{{channel_id}} (PUT)</li>
+</ul>
+
+
+
+<pre class="prettyprint"><code class="language-curl hljs avrasm">PUT /v1/roc/admin/channels/<span class="hljs-number">63958</span>c8642fc4cb7971ea0ea49cf08f4 HTTP/<span class="hljs-number">1.1</span>
+<span class="hljs-label">Host:</span> https://gw<span class="hljs-preprocessor">.zops</span><span class="hljs-preprocessor">.io</span>
+Content-Type: application/json
+<span class="hljs-label">AUTHORIZATION:</span> Token wL8e00g7vL8RKHoxZSA_VOH7VXZXy02gA2Qg8oVLHIDdQ-orDWQIvNggKyCLHLAUm-NQT74jQF4MEEjpAYABsQ
+{
+    <span class="hljs-string">"name"</span>: <span class="hljs-string">"Test Admin Update Private Channel 1"</span>, 
+    <span class="hljs-string">"description"</span>: <span class="hljs-string">"Test Admin Update Private Channel Description"</span>, 
+    <span class="hljs-string">"channelType"</span>: <span class="hljs-string">"private"</span>,
+    <span class="hljs-string">"subscribers"</span>: [<span class="hljs-string">"cdb20149dfe249b192bd07bd36280ebd"</span>],
+    <span class="hljs-string">"managers"</span>: [<span class="hljs-string">"4e9593e3a0a84a58877048bb3b7c926c"</span>]
+}</code></pre>
+
+<p>Belirli bir kullanıcıya yeni contact eklemek için;</p>
+
+<ul>
+<li>Öncelikle projemize ait admin service tokenini almamiz gerekmektedir. Bu tokeni <a href="https://saas.zops.io/api/v1/projects/">https://saas.zops.io/api/v1/projects/</a>{{projectId}}/services-token] (GET) adresinden alabilirsiniz. Bu token için expire suresi yoktur. Proje başına sadece bir adet yaratılabilir. Yenisini aldığınızda daha önce var olan token invalid hale getirilir.</li>
+<li>Belirli bir kullanıcıya (subscriber) yeni contact listesi eklemek için <a href="https://gw.zops.io/v1/roc/admin/contact">https://gw.zops.io/v1/roc/admin/contact</a> (POST) endpointini kullanabilirsiniz. “subscriber_id” parametresi yeni contact eklenecek kullanıcıyı temsil eder. <br>
+“contactListToAdd” parametresi ROC sisteminde tanımlı olan kullanıcıların (subscriber) id’lerinden oluşan bir listedir. Bu parametreye contact olarak eklenecek kişileri liste olarak geçmeniz gerekmektedir. <br>
+Aşağıda örnek bir request paylaşılmıştır. </li>
+</ul>
+
+
+
+<pre class="prettyprint"><code class="language-curl hljs avrasm">POST /v1/roc/admin/contact HTTP/<span class="hljs-number">1.1</span>
+<span class="hljs-label">Host:</span> https://gw<span class="hljs-preprocessor">.zops</span><span class="hljs-preprocessor">.io</span>
+Content-Type: application/json
+<span class="hljs-label">AUTHORIZATION:</span> Token wL8e00g7vL8RKHoxZSA_VOH7VXZXy02gA2Qg8oVLHIDdQ-orDWQIvNggKyCLHLAUm-NQT74jQF4MEEjpAYABsQ
+{
+    <span class="hljs-string">"subscriber_id"</span>: <span class="hljs-string">"4e9593e3a0a84a58877048bb3b7c926c"</span>, 
+    <span class="hljs-string">"contactListToAdd"</span>: [<span class="hljs-string">"4e9593e3a0a84a58877048bb3b7c926c"</span>,<span class="hljs-string">"cdb20149dfe249b192bd07bd36280ebd"</span>, <span class="hljs-string">"5bf760d7e783479792666f239a27c8e9"</span>, <span class="hljs-string">"c30668463ca5437b8665dbdd660d65ec"</span>]
+}</code></pre>
+
+
+
+<h1 id="zops-auth-push-ve-roc-akışları-1">ZOPS Auth, PUSH ve ROC Akışları</h1>
+
+
+
+<h2 id="auth-1">Auth</h2>
+
+<ul>
+<li>İlk olarak kullanıcı <strong>Zops</strong> üzerinde bir ““account”” oluşturmalıdır. <a href="%5bhttp://zops.io/signup%5d%28http://zops.io/signup%29">Signup</a> endpoint’ini kullanarak kendinize “account” oluşturabilirsiniz.</li>
+<li>Mail adresinize gelen linke tıklayarak “account” oluşturmayı kabul edersiniz. Tıklanılan link, sizi kullanıcı bilgilerinizi dolduracağınız bir ekrana yönlendirir.</li>
+<li>Gerekli alanları doldurduktan sonra ilgili “account”ta tanımlı bir admin hesabı oluşur.</li>
+<li>Sistem üzerinde işlem yapabilmek için (proje oluşturma, “consumer” oluşturma, “consumer”ları projelere ekleme gibi) geçerli bir token’a sahip olmanız gerekir. Bu tokeni alabilmek için <a href="%5bhttps://docs.zops.io/SAAS.html#loginresource%5d%28https://docs.zops.io/SAAS.html#loginresource%29">SAAS loginresource</a> adresinden yararlanabilirsiniz.</li>
+<li>Saas sistemi üzerinden geçerli token aldıktan sonra yapılacak requestlerde bu token kullanılması gerekir.</li>
+<li>Tokeni request headerinin “AUTHORIZATION” parametre değeri olarak kullanmanız gerekir.(Sistem üzerinde User token olarak bilinen bu tokenin kullanım süresi 1 haftadır. 1 Hafta sonunda geçerliliğini yitirir.)</li>
+<li>Daha sonra “account”a proje eklemeniz gerekir. Proje eklemek için <a href="%5bhttps://docs.zops.io/SAAS.html#project-create--list%5d%28https://docs.zops.io/SAAS.html#project-create--list%29">project-create–list</a> adresten yararlanabilirsiniz.</li>
+<li>Oluşturduğunuz projeye kullanmak istediğiniz servisleri(“roc”, “push) eklemeniz gerekir. Projeye servis eklemek için <a href="%5bhttps://docs.zops.io/SAAS.html#service-create%5d%28https://docs.zops.io/SAAS.html#service-create%29">service-create</a> ilgili adresten yararlanabilirsiniz.</li>
+<li>Projelerde kullanmak üzere “account”unuza “consumer” eklemeniz gerekir. Eklenilen “consumer”lar “account” seviyesindedir. “Consumer” eklemek için <a href="%5bhttps://docs.zops.io/SAAS.html#consumer-create--list%5d%28https://docs.zops.io/SAAS.html#consumer-create--list%29">consumer-create–list</a> adresinden yararlanabilirsiniz.</li>
+<li>“Account”a eklenen “consumer”ları projenizde kullanabilmek için proje ile “consumer”ı ilişkilendirmeniz gerekir. Siz özel olarak bir projeye ile “consumer”ı ilişkilendirmediğiniz sürece “consumer” projenin servislerini kullanamayacaktır. Proje ile “consumer”i ilişkilendirmek için <a href="%5bhttps://docs.zops.io/SAAS.html#project-consumer-create%5d%28https://docs.zops.io/SAAS.html#project-consumer-create%29">consumer-create</a> adresinden yararlanabilirsiniz.</li>
+<li>Daha sonra “consumer”larin proje servislerini kullanabilmesi için token(Saas “consumer” refresh token. Bu tokenin süresi 60sn dir.) üretmeniz gerekir. Bu tokeni hangi service icin alıyorsak request bodysinde ekliyoruz. Aldığımız token belirli bir servis içindir. Bütün servisler için kullanılamaz. Gerekli dökümana <a href="%5bhttps://docs.zops.io/SAAS.html#consumer-token-create%5d%28https://docs.zops.io/SAAS.html#consumer-token-create%29">consumer-token-create</a> adresinden ulaşabilirsiniz.</li>
+<li>“Saas” servisinden aldığınız “consumer” refresh token ile “auth” servisine request göndererek refresh token ve access token alıyoruz. Auth servisinden alınan access token servise erişim için kullanılır. Süresi 3 saattir. Acess token ile birlikte gelen refresh tokeni access tokeni yenilemek için kullanabiliriz. Detaylı bilgi için bakınız <a href="%5bhttps://docs.zops.io/AUTH.html%5d%28https://docs.zops.io/AUTH.html%29">AUTH</a> .</li>
+</ul>
+
+
+
+<h2 id="push-1">PUSH</h2>
+
+<ul>
+<li>Auth servisinden alacağınız push/roc access tokeni ile ilgili servisleri kullanabilirsiniz.</li>
+<li>Push servisi içerisinde “consumer”lar “user” olarak tanımlıdır. Yazının ilerleyen bölümlerinde ve döküman içerisinde “consumer” “user” olarak anlatılmaktadır.</li>
+<li>Userların push servisini kullanabilmesi için ilk olarak client register etmeleri gerekir. Client eklenmemiş bir user push sistemi içerisinde tanımlı değildir. Lütfen bu uyarıyı dikkate alınız. Client register etmek için <a href="%5bhttps://docs.zops.io/PUSH.html#client-create--list%5d%28https://docs.zops.io/PUSH.html#client-create--list%29">client-create–list</a> adresinden yararlanabilirsiniz.</li>
+<li>Sistem üzerinde user ve clientları gruplandırmak için tag sistemi kullanılmaktadır. Tag tiplerimiz ‘key’, ‘key-value’ ve ‘multi’ dir. Tag değerlerimiz ‘int’, ‘float’ ve ‘str’ dir. Request örneklerini incelemek için <a href="%5bhttps://docs.zops.io/PUSH.html#tag-create--list%5d%28https://docs.zops.io/PUSH.html#tag-create--list%29">tag-create</a> adresinden yararlanabilirsiniz.</li>
+<li>Sistem içerisinde oluşturduğumuz taglari ’client’ ile bağdaştırabilirsiniz. Örneğin ‘role’ ismiyle oluşturduğunuz bir ‘multi’, ‘str’ tagı herhangi bir clienta ‘ogrenci’, ‘ogretmen’, ‘memur’ gibi bir değer ile atayabilirsiniz. Örnekler için <a href="%5bhttps://docs.zops.io/PUSH.html#client-tag-add--list%5d%28https://docs.zops.io/PUSH.html#client-tag-add--list%29">client-tag-add–list</a> adresinden yararlanabilirsiniz.</li>
+<li>Sistem içerisinde oluşturduğumuz taglari ’user’ ile bağdaştırabilirsiniz. Örneğin ‘sehir’ ismiyle oluşturduğunuz bir ‘multi’, ‘str’ tagı herhangi bir usera ‘izmir’, ‘istanbul’, ‘ankara’ gibi bir değer ile atayabilirsiniz. Örnekler için <a href="%5bhttps://docs.zops.io/PUSH.html#client-tag-add--list%5d%28https://docs.zops.io/PUSH.html#client-tag-add--list%29">client-tag-add–list</a> adresinden yararlanabilirsiniz.</li>
+<li>Daha sonra segment oluşturarak mesaj gönderme adımına geçebiliriz. Segmentleri daha önce oluşturduğumuz “tag”ların (user veya client) birleşiminden(<code>n</code>), kesişiminden(<code>U</code>), farkından(<code>-</code>) ve <code>&gt;, &lt;, =</code>gibi matematiksel simgeler ile oluşturabilirsiniz. Ayrıntılı bilgi için bakınız <a href="%5bhttps://docs.zops.io/PUSH.html#segment-create--create-bulk--list%5d%28https://docs.zops.io/PUSH.html#segment-create--create-bulk--list%29">segment-create–create-bulk–list</a></li>
+<li>Sistemimizden aldığınız segmentId(Mesaj request body “audience” parametresi) sini kullanarak mesaj gönderebiliriz. Mesaj request örneği için <a href="%5bhttps://docs.zops.io/PUSH.html#message-post--list%5d%28https://docs.zops.io/PUSH.html#message-post--list%29">message-post–list</a> adresinden faydalanabilirsiniz.</li>
+</ul>
+
+
+
+<h2 id="roc-1">ROC</h2>
+
+<ul>
+<li><p>ROC sistemi içerisinde consumerlar kullanıcı(subscriber) olarak tanımlanır.</p></li>
+<li><p>ROC servisini ilk defa kullanacak kullanıcılar için birinci adım “me” endpointi’dir. Bu endpoint aracılığıyla sisteme kendini tanıtır. (<em>Bu adım işletilmek zorundadır. Lütfen uyarıyı dikkate alınız</em>). Aynı zamanda bu endpoint’i kullanarak kendisi hakkında bilgi (contacts, channels, bannedChannels, bannedSubscribers, channelInvites, channelJoinRequests, contactRequestsIn, contactRequestsOut) alabilir. Bakınız <a href="%5b%E2%80%98https://gw.zops.io/v1/roc/me%27%28GET%29%5d%28https://doc.zops.io/%E2%80%98https://gw.zops.io/v1/roc/me%27%28GET%29">me</a>) ve <a href="%5bhttps://docs.zops.io/ROC.html#subscriber-retrieval%5d%28https://docs.zops.io/ROC.html#subscriber-retrieval%29">subscriber-retrieval</a></p></li>
+<li><p>Kişiler arası mesajlaşma için kullanıcıların contact kurmuş olması gerekir. Bunun için contact request göndermemiz veya var olan requesti kabul etmemiz gerekir. İki kullanıcı contact kurduktan sonra mesajlaşabilir.</p></li>
+<li><p>Mesajlaşmak istediğimiz kişiye contact request göndermemiz gerekir. (<a href="%5bhttps://gw.zops.io/v1/roc/contact-requests%5d%28https://gw.zops.io/v1/roc/contact-requests%29">https://gw.zops.io/v1/roc/contact-requests</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#contact-request-create--list%5d%28https://docs.zops.io/ROC.html#contact-request-create--list%29">https://docs.zops.io/ROC.html#contact-request-create–list</a>)</p></li>
+<li><p>Contact request list endpointi ile bize gelen contact requestlerini listeleyebiliriz. (<a href="%5bhttps://gw.zops.io/v1/roc/contact-requests%5d%28https://gw.zops.io/v1/roc/contact-requests%29">https://gw.zops.io/v1/roc/contact-requests</a> (GET), <a href="%5bhttps://docs.zops.io/ROC.html#contact-request-create--list%5d%28https://docs.zops.io/ROC.html#contact-request-create--list%29">https://docs.zops.io/ROC.html#contact-request-create–list</a>)</p></li>
+<li><p>Listelediğimiz contact requestlerini kabul etmek veya reddetmek için (<a href="%5bhttps://gw.zops.io/v1/roc/contact-requests/%7Binvite_id%7D%5d%28https://gw.zops.io/v1/roc/contact-requests/%7Binvite_id%7D%29">https://gw.zops.io/v1/roc/contact-requests/{invite_id}</a> (PUT), <a href="%5bhttps://docs.zops.io/ROC.html#contact-request-accept--reject%5d%28https://docs.zops.io/ROC.html#contact-request-accept--reject%29">https://docs.zops.io/ROC.html#contact-request-accept–reject</a>)</p></li>
+<li><p>Contact listemizde olan bir kişiye mesaj atabilmek için (<a href="%5bhttps://gw.zops.io/v1/roc/messages/%5d%28https://gw.zops.io/v1/roc/messages/%29">https://gw.zops.io/v1/roc/messages/</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#message-create--list%5d%28https://docs.zops.io/ROC.html#message-create--list%29">https://docs.zops.io/ROC.html#message-create–list</a>)</p></li>
+<li><p>Bir kullanıcıdan gelen mesajlara ulaşabilmek için (<a href="%5bhttps://gw.zops.io/v1/roc/messages?subscriber=%7B%7BsubscriberId%7D%5d%28https://gw.zops.io/v1/roc/messages?subscriber=%7B%7BsubscriberId%7D%29">https://gw.zops.io/v1/roc/messages?subscriber={{subscriberId}</a>} (GET), <a href="%5bhttps://docs.zops.io/ROC.html#message-create--list%5d%28https://docs.zops.io/ROC.html#message-create--list%29">https://docs.zops.io/ROC.html#message-create–list</a>)</p></li>
+</ul>
+
+<p>Grup mesajlaşması için;</p>
+
+<ul>
+<li>Kanal oluşturmak için (<a href="%5bhttps://gw.zops.io/v1/roc/channels%5d%28https://gw.zops.io/v1/roc/channels%29">https://gw.zops.io/v1/roc/channels</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#channel-list--create%5d%28https://docs.zops.io/ROC.html#channel-list--create%29">https://docs.zops.io/ROC.html#channel-list–create</a>)</li>
+<li>Kullanıcıyı kanala davet etmek veya kanala katılma talebi göndermek için (<a href="%5bhttps://gw.zops.io/v1/roc/invites%5d%28https://gw.zops.io/v1/roc/invites%29">https://gw.zops.io/v1/roc/invites</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#invitation-create%5d%28https://docs.zops.io/ROC.html#invitation-create%29">https://docs.zops.io/ROC.html#invitation-create</a>)</li>
+<li>Yetkili olarak kanala gelen katılma taleplerini kabul etmek - reddetmek için (<a href="%5bhttps://gw.zops.io/v1/roc/invites/%7B%7BjoinRequestId%7D%5d%28https://gw.zops.io/v1/roc/invites/%7B%7BjoinRequestId%7D%29">https://gw.zops.io/v1/roc/invites/{{joinRequestId}</a>} (PUT), <a href="%5bhttps://docs.zops.io/ROC.html#invitation-accept--reject--cancel%5d%28https://docs.zops.io/ROC.html#invitation-accept--reject--cancel%29">https://docs.zops.io/ROC.html#invitation-accept–reject–cancel</a>)</li>
+<li>Kanaldan gelen daveti kabul etmek - reddetmek için (<a href="%5bhttps://gw.zops.io/v1/roc/invites/%7B%7BinviteId%7D%5d%28https://gw.zops.io/v1/roc/invites/%7B%7BinviteId%7D%29">https://gw.zops.io/v1/roc/invites/{{inviteId}</a>} (PUT), <a href="%5bhttps://docs.zops.io/ROC.html#invitation-accept--reject--cancel%5d%28https://docs.zops.io/ROC.html#invitation-accept--reject--cancel%29">https://docs.zops.io/ROC.html#invitation-accept–reject–cancel</a>)</li>
+<li>Kanala mesaj göndermek için (<a href="%5bhttps://gw.zops.io/v1/roc/messages%5d%28https://gw.zops.io/v1/roc/messages%29">https://gw.zops.io/v1/roc/messages</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#message-create--list%5d%28https://docs.zops.io/ROC.html#message-create--list%29">https://docs.zops.io/ROC.html#message-create–list</a>)</li>
+<li>Kanal mesajlarını listelemek için (<a href="%5bhttps://gw.zops.io/v1/roc/messages?channel=%7B%7BchannelId%7D%5d%28https://gw.zops.io/v1/roc/messages?channel=%7B%7BchannelId%7D%29">https://gw.zops.io/v1/roc/messages?channel={{channelId}</a>} (GET), <a href="%5bhttps://docs.zops.io/ROC.html#message-create--list%5d%28https://docs.zops.io/ROC.html#message-create--list%29">https://docs.zops.io/ROC.html#message-create–list</a>)</li>
+</ul>
+
+<p>Burda yazan işlemler birebir mesajlaşma ve kanal mesajlaşması için uygulanması gereken en temel özelliklerdir. Bahsedilen kullanıcılar arası mesajlaşma ve kanal mesajlaşması adımları postman collection olarak eklenecektir.</p>
+
+<p>Ek olarak;</p>
+
+<ul>
+<li>Kullanıcının durumunu(status) almak ve değiştirmek için (<a href="%5bhttps://gw.zops.io/v1/roc/status%5d%28https://gw.zops.io/v1/roc/status%29">https://gw.zops.io/v1/roc/status</a> (GET, POST), <a href="%5bhttps://docs.zops.io/ROC.html#sending-and-retrieving-status%5d%28https://docs.zops.io/ROC.html#sending-and-retrieving-status%29">https://docs.zops.io/ROC.html#sending-and-retrieving-status</a>)</li>
+<li>Kanal bilgilerini alabilmek, kanalı güncelleyebilmek silebilmek için (<a href="%5bhttps://gw.zops.io/v1/roc/channels/%7B%7BchannelId%7D%5d%28https://gw.zops.io/v1/roc/channels/%7B%7BchannelId%7D%29">https://gw.zops.io/v1/roc/channels/{{channelId}</a>} (GET, PUT, DELETE), <a href="%5bhttps://docs.zops.io/ROC.html#channel-update--delete--retrieve%5d%28https://docs.zops.io/ROC.html#channel-update--delete--retrieve%29">https://docs.zops.io/ROC.html#channel-update–delete–retrieve</a>)</li>
+<li>Yetkili olarak bir kullanıcıyı kanaldan çıkarmak veya kanal üyesi olarak kanaldan çıkmak için (<a href="%5bhttps://gw.zops.io/v1/roc/channels/%7B%7BchannelId%7D%5d%28https://gw.zops.io/v1/roc/channels/%7B%7BchannelId%7D%29">https://gw.zops.io/v1/roc/channels/{{channelId}</a>}/subscribers/{{subscriberId}} (DELETE), <a href="%5bhttps://docs.zops.io/ROC.html#unsubscribe-from-a-channel-or-unsubscribe-a-subscriber-from-a-channel%5d%28https://docs.zops.io/ROC.html#unsubscribe-from-a-channel-or-unsubscribe-a-subscriber-from-a-channel%29">https://docs.zops.io/ROC.html#unsubscribe-from-a-channel-or-unsubscribe-a-subscriber-from-a-channel</a>)</li>
+<li>Bir kullanıcı olarak kanalı banlamak için veya kanal yetkilisi olarak bir kullanıcı banlamak için (<a href="%5bhttps://gw.zops.io/v1/roc/banned-channels%5d%28https://gw.zops.io/v1/roc/banned-channels%29">https://gw.zops.io/v1/roc/banned-channels</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#ban-channel-subscriber%5d%28https://docs.zops.io/ROC.html#ban-channel-subscriber%29">https://docs.zops.io/ROC.html#ban-channel-subscriber</a>)</li>
+<li>Kullanıcı silmek için (<a href="%5bhttps://gw.zops.io/v1/roc/contacts/%7B%7BsubscriberId%7D%5d%28https://gw.zops.io/v1/roc/contacts/%7B%7BsubscriberId%7D%29">https://gw.zops.io/v1/roc/contacts/{{subscriberId}</a>} (DELETE), <a href="%5bhttps://docs.zops.io/ROC.html#contact-delete%5d%28https://docs.zops.io/ROC.html#contact-delete%29">https://docs.zops.io/ROC.html#contact-delete</a>)</li>
+<li>Kullanıcı banlamak için (<a href="%5bhttps://gw.zops.io/v1/roc/banned-contacts%5d%28https://gw.zops.io/v1/roc/banned-contacts%29">https://gw.zops.io/v1/roc/banned-contacts</a> (POST), <a href="%5bhttps://docs.zops.io/ROC.html#ban-subscriber%5d%28https://docs.zops.io/ROC.html#ban-subscriber%29">https://docs.zops.io/ROC.html#ban-subscriber</a>) <br>
+işlemleri yapılabilir.</li>
+</ul>
+
+<p>Admin Roc Kanal Yaratma ve Güncelleme İşlemi İçin;</p>
+
+<ul>
+<li>Öncelikle projeye ait admin service tokenının alınması gerekmektedir. Bu tokeni <a href="https://saas.zops.io/api/v1/projects/">https://saas.zops.io/api/v1/projects/</a>{{projectId}}/services-token] (GET) adresinden alabilirsiniz. Bu token için expire suresi yoktur. Proje başına sadece bir adet yaratılabilir. Yenisini aldığınızda daha önce var olan token invalid hale getirilir.</li>
+<li>Daha sonra bu token ile roc servisinden kanal yaratabilirsiniz.Aşağıda örnek bir request bulunmaktadır. (<a href="%5bhttps://gw.zops.io/v1/roc/admin/create-channel%5d%28https://gw.zops.io/v1/roc/banned-contacts%29">https://gw.zops.io/v1/roc/admin/create-channel</a> (POST) </li>
+</ul>
+
+<pre class="prettyprint"><code class="language-curl hljs livecodeserver">curl -X POST \ <span class="hljs-keyword">https</span>://gw.zops.io/v1/roc/admin/<span class="hljs-built_in">create</span>-channel \ -H <span class="hljs-string">'AUTHORIZATION: Token AdminToken’ \ -H '</span>Content-Type: application/json<span class="hljs-string">' \ -d '</span>{ <span class="hljs-string">"name"</span>: <span class="hljs-string">"Test Admin Create Private Channel 1"</span>, <span class="hljs-string">"description"</span>: <span class="hljs-string">"Test Admin Create Private Channel Description"</span>, <span class="hljs-string">"channelType"</span>: <span class="hljs-string">"private"</span>, <span class="hljs-string">"subscribers"</span>: [<span class="hljs-string">"2e06406da329463d8a6c4dc31c0d864d"</span>, <span class="hljs-string">"d467b353b23c4e14a97df6dcd75a1b0a"</span>, <span class="hljs-string">"a75c7be7d2f14c3a8c91615ba2b0b80c"</span>, <span class="hljs-string">"475947b057ee45288e8a57946ab43bb6"</span>], <span class="hljs-string">"managers"</span>: [<span class="hljs-string">"2e06406da329463d8a6c4dc31c0d864d"</span>] }<span class="hljs-string">'</span></code></pre>
+
+<ul>
+<li>Roc sisteminde tanımlı olan bir kanalı admin kullanıcı olarak güncelleyebilirsiniz. <a href="https://gw.zops.io/v1/roc/admin/channels/">https://gw.zops.io/v1/roc/admin/channels/</a>{{channel_id}} (PUT)</li>
+</ul>
+
+<pre class="prettyprint"><code class=" hljs avrasm">PUT /v1/roc/admin/channels/<span class="hljs-number">63958</span>c8642fc4cb7971ea0ea49cf08f4 HTTP/<span class="hljs-number">1.1</span>
+<span class="hljs-label">Host:</span> https://gw<span class="hljs-preprocessor">.zops</span><span class="hljs-preprocessor">.io</span>
+Content-Type: application/json
+<span class="hljs-label">AUTHORIZATION:</span> Token wL8e00g7vL8RKHoxZSA_VOH7VXZXy02gA2Qg8oVLHIDdQ-orDWQIvNggKyCLHLAUm-NQT74jQF4MEEjpAYABsQ
+{
+    <span class="hljs-string">"name"</span>: <span class="hljs-string">"Test Admin Update Private Channel 1"</span>, 
+    <span class="hljs-string">"description"</span>: <span class="hljs-string">"Test Admin Update Private Channel Description"</span>, 
+    <span class="hljs-string">"channelType"</span>: <span class="hljs-string">"private"</span>,
+    <span class="hljs-string">"subscribers"</span>: [<span class="hljs-string">"cdb20149dfe249b192bd07bd36280ebd"</span>],
+    <span class="hljs-string">"managers"</span>: [<span class="hljs-string">"4e9593e3a0a84a58877048bb3b7c926c"</span>]
+}</code></pre>
+
+<p>Belirli bir kullanıcıya yeni contact eklemek için;</p>
+
+<ul>
+<li>Öncelikle projeye ait admin service tokenının alınması gerekmektedir. Bu tokeni <a href="https://saas.zops.io/api/v1/projects/">https://saas.zops.io/api/v1/projects/</a>{{projectId}}/services-token] (GET) adresinden alabilirsiniz. Bu token için expire suresi yoktur. Proje başına sadece bir adet yaratılabilir. Yenisini aldığınızda daha önce var olan token invalid hale getirilir.</li>
+<li>Belirli bir kullanıcıya (subscriber) yeni contact listesi eklemek için <a href="https://gw.zops.io/v1/roc/admin/contact">https://gw.zops.io/v1/roc/admin/contact</a> (POST) endpointini kullanabilirsiniz. “subscriber_id” parametresi yeni contact eklenecek kullanıcıyı temsil eder. <br>
+“contactListToAdd” parametresi ROC sisteminde tanımlı olan kullanıcıların (subscriber) id’lerinden oluşan bir listedir. Bu parametreye contact olarak eklenecek kişileri liste olarak geçmeniz gerekmektedir. <br>
+Aşağıda örnek bir request paylaşılmıştır. </li>
+</ul>
+
+<pre class="prettyprint"><code class=" hljs avrasm">POST /v1/roc/admin/contact HTTP/<span class="hljs-number">1.1</span>
+<span class="hljs-label">Host:</span> https://gw<span class="hljs-preprocessor">.zops</span><span class="hljs-preprocessor">.io</span>
+Content-Type: application/json
+<span class="hljs-label">AUTHORIZATION:</span> Token wL8e00g7vL8RKHoxZSA_VOH7VXZXy02gA2Qg8oVLHIDdQ-orDWQIvNggKyCLHLAUm-NQT74jQF4MEEjpAYABsQ
+{
+    <span class="hljs-string">"subscriber_id"</span>: <span class="hljs-string">"4e9593e3a0a84a58877048bb3b7c926c"</span>, 
+    <span class="hljs-string">"contactListToAdd"</span>: [<span class="hljs-string">"4e9593e3a0a84a58877048bb3b7c926c"</span>,<span class="hljs-string">"cdb20149dfe249b192bd07bd36280ebd"</span>, <span class="hljs-string">"5bf760d7e783479792666f239a27c8e9"</span>, <span class="hljs-string">"c30668463ca5437b8665dbdd660d65ec"</span>]
+}</code></pre>
