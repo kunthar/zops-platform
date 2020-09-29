@@ -1,0 +1,1958 @@
+{
+	"info": {
+		"_postman_id": "f48d9761-907e-4d84-ac48-e2c60cc3f975",
+		"name": "PUSH Message with Segment",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a1fbdb29-192d-4738-8026-1f5d561ea22f",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"saasAdminTokenPSCT\", jsonData.content.token);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"email\": \"{{testMail}}\", \"password\": \"{{testPassword}}\"}"
+				},
+				"url": "{{saasUrl}}/session"
+			},
+			"response": []
+		},
+		{
+			"name": "create project",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "5991e25b-c82e-43b1-8379-4d14d17ef9b6",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"projectIdPSCT\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"name\": \"Deneme Project\", \"description\": \"Super top secret project!\"}"
+				},
+				"url": "{{saasUrl}}/projects"
+			},
+			"response": []
+		},
+		{
+			"name": "Update project api key",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "5991e25b-c82e-43b1-8379-4d14d17ef9b6",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"projectIdPSCT\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"fcmApiKeys\": \"AAAAVUDkzd4:APA91bGsxvLn5UtZPNQaZNj_yc1alJgbdghwbfk10tNA5c97wx9t0eRFuFiAtv_fBN81cJvzCkwP8NhbGEJxLJq22xXUXn0N8_jXXP2XCjbv73zslZPwlI_AnxVInYOYnjWPk8cdxlpE\", \n\t\"fcmProjectNumber\": \"366160956894\", \n\t\"apnsCert\": \"TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlzIHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2YgdGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGludWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNlZWRzIHRoZSBzaG9ydCB2ZWhlbWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=\"\n}"
+				},
+				"url": "{{saasUrl}}/projects/{{projectIdPSCT}}/api"
+			},
+			"response": []
+		},
+		{
+			"name": "attach push service to project",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\":\"postman-test-push-message-with-consumer-id\", \n\t\"description\":\"postman-test-push\", \n\t\"serviceCatalogCode\":\"push\"}"
+				},
+				"url": "{{saasUrl}}/projects/{{projectIdPSCT}}/services"
+			},
+			"response": []
+		},
+		{
+			"name": "create consumer1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c7f0fb98-4cd8-4756-849d-a737cd722c0c",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer1IdPSCT\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"email\": \"consumer1@consumer.com\", \"password\": \"consumer1password\"}"
+				},
+				"url": "{{saasUrl}}/consumers"
+			},
+			"response": []
+		},
+		{
+			"name": "create consumer2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "98e41b3a-7963-4107-ae60-8bf7a6c8942d",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer2IdPSCT\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"email\": \"consumer2@consumer.com\", \"password\": \"consumer2password\"}"
+				},
+				"url": "{{saasUrl}}/consumers"
+			},
+			"response": []
+		},
+		{
+			"name": "create consumer3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "84c3d639-e059-4572-ad43-00d5e96331ce",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer3IdPSCT\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"email\": \"consumer3@consumer.com\", \"password\": \"consumer2password\"}"
+				},
+				"url": "{{saasUrl}}/consumers"
+			},
+			"response": []
+		},
+		{
+			"name": "create consumer4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "03825a56-1a76-4c25-87d0-b6df5c3360c3",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer4IdPSCT\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"email\": \"consumer4@consumer.com\", \"password\": \"consumer4password\"}"
+				},
+				"url": "{{saasUrl}}/consumers"
+			},
+			"response": []
+		},
+		{
+			"name": "create consumer5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4fbd878e-e996-42b1-9956-1fc4e41af112",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer5IdPSCT\", jsonData.content.id);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"email\": \"consumer5@consumer.com\", \"password\": \"consumer5password\"}"
+				},
+				"url": "{{saasUrl}}/consumers"
+			},
+			"response": []
+		},
+		{
+			"name": "attach consumer1 to project",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"consumerId\":\"{{consumer1IdPSCT}}\"}"
+				},
+				"url": "{{saasUrl}}/projects/{{projectIdPSCT}}/consumers"
+			},
+			"response": []
+		},
+		{
+			"name": "attach consumer2 to project",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"consumerId\":\"{{consumer2IdPSCT}}\"}"
+				},
+				"url": "{{saasUrl}}/projects/{{projectIdPSCT}}/consumers"
+			},
+			"response": []
+		},
+		{
+			"name": "attach consumer3 to project",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"consumerId\":\"{{consumer3IdPSCT}}\"}"
+				},
+				"url": "{{saasUrl}}/projects/{{projectIdPSCT}}/consumers"
+			},
+			"response": []
+		},
+		{
+			"name": "attach consumer4 to project",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"consumerId\":\"{{consumer4IdPSCT}}\"}"
+				},
+				"url": "{{saasUrl}}/projects/{{projectIdPSCT}}/consumers"
+			},
+			"response": []
+		},
+		{
+			"name": "attach consumer5 to project",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"consumerId\":\"{{consumer5IdPSCT}}\"}"
+				},
+				"url": "{{saasUrl}}/projects/{{projectIdPSCT}}/consumers"
+			},
+			"response": []
+		},
+		{
+			"name": "create push service token for consumer 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "46beade0-09b4-4e62-8726-77cb47e8b1ba",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer1RefreshTokenPSCT\", jsonData.content.token);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"consumerId\":\"{{consumer1IdPSCT}}\", \n\t\"projectId\":\"{{projectIdPSCT}}\", \n\t\"serviceCatalogCode\":\"push\"\n}"
+				},
+				"url": "{{saasUrl}}/consumer-tokens"
+			},
+			"response": []
+		},
+		{
+			"name": "create push service token for consumer 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "dafb4988-6a22-4e9a-af03-0454e02233ad",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer2RefreshTokenPSCT\", jsonData.content.token);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"consumerId\":\"{{consumer2IdPSCT}}\", \n\t\"projectId\":\"{{projectIdPSCT}}\", \n\t\"serviceCatalogCode\":\"push\"\n}"
+				},
+				"url": "{{saasUrl}}/consumer-tokens"
+			},
+			"response": []
+		},
+		{
+			"name": "create push service token for consumer 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "abd733ff-f757-41ca-a864-fb27291222d4",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer3RefreshTokenPSCT\", jsonData.content.token);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"consumerId\":\"{{consumer3IdPSCT}}\", \n\t\"projectId\":\"{{projectIdPSCT}}\", \n\t\"serviceCatalogCode\":\"push\"\n}"
+				},
+				"url": "{{saasUrl}}/consumer-tokens"
+			},
+			"response": []
+		},
+		{
+			"name": "create push service token for consumer 4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "65c8b499-ea99-491d-8735-dd83eabfa781",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer4RefreshTokenPSCT\", jsonData.content.token);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"consumerId\":\"{{consumer4IdPSCT}}\", \n\t\"projectId\":\"{{projectIdPSCT}}\", \n\t\"serviceCatalogCode\":\"push\"\n}"
+				},
+				"url": "{{saasUrl}}/consumer-tokens"
+			},
+			"response": []
+		},
+		{
+			"name": "create push service token for consumer 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "35e90afd-909e-4f18-a693-caff057fac70",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer5RefreshTokenPSCT\", jsonData.content.token);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "{{saasAdminTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"consumerId\":\"{{consumer5IdPSCT}}\", \n\t\"projectId\":\"{{projectIdPSCT}}\", \n\t\"serviceCatalogCode\":\"push\"\n}"
+				},
+				"url": "{{saasUrl}}/consumer-tokens"
+			},
+			"response": []
+		},
+		{
+			"name": "Create Push Service Access Token for Consumer 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a84d74b8-e470-4ebe-bf31-6f2a7aadf486",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer1AccessTokenPSCT\", jsonData.content.accessToken);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "",
+						"value": "",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"refreshToken\":\"{{consumer1RefreshTokenPSCT}}\"}"
+				},
+				"url": "{{authUrl}}/token"
+			},
+			"response": []
+		},
+		{
+			"name": "Create Push Service Access Token for Consumer 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "bed2ef29-6452-4128-88cf-115e48bb74d3",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer2AccessTokenPSCT\", jsonData.content.accessToken);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "",
+						"value": "",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"refreshToken\":\"{{consumer2RefreshTokenPSCT}}\"}"
+				},
+				"url": "{{authUrl}}/token"
+			},
+			"response": []
+		},
+		{
+			"name": "Create Push Service Access Token for Consumer 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "3537d487-3c78-4dd2-8f47-ddc43602d857",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer3AccessTokenPSCT\", jsonData.content.accessToken);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "",
+						"value": "",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"refreshToken\":\"{{consumer3RefreshTokenPSCT}}\"}"
+				},
+				"url": "{{authUrl}}/token"
+			},
+			"response": []
+		},
+		{
+			"name": "Create Push Service Access Token for Consumer 4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "51f5dd06-522b-46b1-8cd9-6a85d14da0b7",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer4AccessTokenPSCT\", jsonData.content.accessToken);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "",
+						"value": "",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"refreshToken\":\"{{consumer4RefreshTokenPSCT}}\"}"
+				},
+				"url": "{{authUrl}}/token"
+			},
+			"response": []
+		},
+		{
+			"name": "Create Push Service Access Token for Consumer 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "6a50f8ab-910d-40eb-8b71-fa9f86bfb864",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"consumer5AccessTokenPSCT\", jsonData.content.accessToken);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "",
+						"value": "",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"refreshToken\":\"{{consumer5RefreshTokenPSCT}}\"}"
+				},
+				"url": "{{authUrl}}/token"
+			},
+			"response": []
+		},
+		{
+			"name": "Register new Client for Consumer 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c9fcd143-6f72-4ab8-a078-6b316067ce78",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"clientId1\", jsonData.content.clientId);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"token\": \"cDhjgXORHNo:APA91bHcQZD_B4mJUKnp0C3yTLjrv9ug-3du5n-f_cxRQb3JmF0zQdBrJL-1yL-h11ztE_-GzdeePvAFBsIH_DbPhK-VG8fUT9c0WOQSuOYyKvL3qwWR4GmAXS9AXCTsLkjt5_uS4hvR\",\n                         \"appVersion\": \"1.0.0\",\n                         \"deviceType\": \"android\",\n                         \"language\": \"English\",\n                         \"country\": \"Turkey\",\n                         \"osVersion\": \"2.2.5\"\n}"
+				},
+				"url": "{{pushUrl}}/clients"
+			},
+			"response": []
+		},
+		{
+			"name": "Register new Client for Consumer 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4dccff66-9dab-411c-ae0d-ee7cc1c4a68c",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"clientId2\", jsonData.content.clientId);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"token\": \"chTUCa-gDls:APA91bHnpk8QF9pyknLLs2qmaLgFh3tAxcJrZA-1ocpCOQUN7ChuScvSFftd2zOh6UAJ1__1zDTnHxvRQCZYUoJ4xq5IyQokPV0XunbQ2ftxcaD0Z2kOT_R6Fgj7HcgcKcNeYhwnm6Qs\",\n                         \"appVersion\": \"1.0.0\",\n                         \"deviceType\": \"android\",\n                         \"language\": \"English\",\n                         \"country\": \"Turkey\",\n                         \"osVersion\": \"2.2.5\"\n}"
+				},
+				"url": "{{pushUrl}}/clients"
+			},
+			"response": []
+		},
+		{
+			"name": "Register new Client for Consumer 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "693dcdd1-ea2d-4002-8144-06111f83465a",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"clientId3\", jsonData.content.clientId);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer3AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"token\": \"f4yPfX5bmnk:APA91bFuDOcb8Rv32LOcP0_5_ySAd7yolyCkPLcEMeo4KM5EybBokyCEPwcb5jkDie4awiawb5pBGeKVkkGdzO0vz1p3cCQBckm0_J-0dkQvWEkVjATrm9GXlfekMEz2vaFUo_OYgizO\",\n                         \"appVersion\": \"1.0.0\",\n                         \"deviceType\": \"android\",\n                         \"language\": \"English\",\n                         \"country\": \"Turkey\",\n                         \"osVersion\": \"2.2.5\"\n}"
+				},
+				"url": "{{pushUrl}}/clients"
+			},
+			"response": []
+		},
+		{
+			"name": "Register new Client for Consumer 4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "5c70fb65-6294-419d-916b-9e0f50bba391",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"clientId4\", jsonData.content.clientId);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer4AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"token\": \"chTUCa-gDls:APA91bHnpk8QF9pyknLLs2qmaLgFh3tAxcJrZA-1ocpCOQUN7ChuScvSFftd2zOh6UAJ1__1zDTnHxvRQCZYUoJ4xq5IyQokPV0XunbQ2ftxcaD0Z2kOT_R6Fgj7HcgcKcNeYhwnm6Qs\",\n                         \"appVersion\": \"1.0.0\",\n                         \"deviceType\": \"android\",\n                         \"language\": \"English\",\n                         \"country\": \"Turkey\",\n                         \"osVersion\": \"2.2.5\"\n}"
+				},
+				"url": "{{pushUrl}}/clients"
+			},
+			"response": []
+		},
+		{
+			"name": "Register new Client for Consumer 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "07cf07cf-c314-4f14-9e60-6f907609ea00",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"clientId5\", jsonData.content.clientId);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer5AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"token\": \"chTUCa-gDls:APA91bHnpk8QF9pyknLLs2qmaLgFh3tAxcJrZA-1ocpCOQUN7ChuScvSFftd2zOh6UAJ1__1zDTnHxvRQCZYUoJ4xq5IyQokPV0XunbQ2ftxcaD0Z2kOT_R6Fgj7HcgcKcNeYhwnm6Qs\",\n                         \"appVersion\": \"1.0.0\",\n                         \"deviceType\": \"android\",\n                         \"language\": \"English\",\n                         \"country\": \"Turkey\",\n                         \"osVersion\": \"2.2.5\"\n}"
+				},
+				"url": "{{pushUrl}}/clients"
+			},
+			"response": []
+		},
+		{
+			"name": "Create String \"devicetype\" Tag(Multi)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"devicetype\",\n    \"tagType\": \"multi\",\n    \"valueType\": \"str\" }"
+				},
+				"url": "{{pushUrl}}/tags"
+			},
+			"response": []
+		},
+		{
+			"name": "Create String \"role\" Tag(Multi)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"role\",\n    \"tagType\": \"multi\",\n    \"valueType\": \"str\" }"
+				},
+				"url": "{{pushUrl}}/tags"
+			},
+			"response": []
+		},
+		{
+			"name": "Create String \"class\" Tag(Multi)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"class\",\n    \"tagType\": \"multi\",\n    \"valueType\": \"str\" }"
+				},
+				"url": "{{pushUrl}}/tags"
+			},
+			"response": []
+		},
+		{
+			"name": "List Tags",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"Class\",\n    \"tagType\": \"multi\",\n    \"valueType\": \"str\" }"
+				},
+				"url": "{{pushUrl}}/tags"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Tag with Name(\"role\")",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"Class\",\n    \"tagType\": \"multi\",\n    \"valueType\": \"str\" }"
+				},
+				"url": "{{pushUrl}}/tags/role"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"ogretmen\" Value in \"role\" Tag to Client 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId1}}\",\n    \"key\": \"role\",\n    \"valueWrite\": \"ogretmen\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"ios\" Value in \"devicetype\" Tag to Client 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId1}}\",\n    \"key\": \"devicetype\",\n    \"valueWrite\": \"ios\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"ogrenci\" Value in \"role\" Tag to Client 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId2}}\",\n    \"key\": \"role\",\n    \"valueWrite\": \"ogrenci\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"10A\" Value in \"class\" Tag to Client 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId2}}\",\n    \"key\": \"class\",\n    \"valueWrite\": \"10A\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"ios\" Value in \"devicetype\" Tag to Client 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId2}}\",\n    \"key\": \"devicetype\",\n    \"valueWrite\": \"ios\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"ogrenci\" Value in \"role\" Tag to Client 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer3AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId3}}\",\n    \"key\": \"role\",\n    \"valueWrite\": \"ogrenci\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"10A\" Value in \"class\" Tag to Client 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer3AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId3}}\",\n    \"key\": \"class\",\n    \"valueWrite\": \"10A\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"android\" Value in \"devicetype\" Tag to Client 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer3AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId3}}\",\n    \"key\": \"devicetype\",\n    \"valueWrite\": \"android\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"ogrenci\" Value in \"role\" Tag to Client 4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer4AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId4}}\",\n    \"key\": \"role\",\n    \"valueWrite\": \"ogrenci\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"10B\" Value in \"class\" Tag to Client 4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer4AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId4}}\",\n    \"key\": \"class\",\n    \"valueWrite\": \"10B\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"ios\" Value in \"devicetype\" Tag to Client 4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer4AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId4}}\",\n    \"key\": \"device-type\",\n    \"valueWrite\": \"ios\"\n}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"ogrenci\" Value in \"role\" Tag to Client 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer5AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId5}}\",\n    \"key\": \"role\",\n    \"valueWrite\": \"ogrenci\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"10B\" Value in \"class\" Tag to Client 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer5AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId5}}\",\n    \"key\": \"class\",\n    \"valueWrite\": \"10B\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "Add \"android\" Value in \"devicetype\" Tag to Client 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer5AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId5}}\",\n    \"key\": \"devicetype\",\n    \"valueWrite\": \"android\"}"
+				},
+				"url": "{{pushUrl}}/tags/client"
+			},
+			"response": []
+		},
+		{
+			"name": "List  Tags for Client 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId5}}\",\n    \"key\": \"device-type\",\n    \"valueWrite\": \"android\"}"
+				},
+				"url": {
+					"raw": "{{pushUrl}}/tags/client?clientParam={{clientId1}}",
+					"host": [
+						"{{pushUrl}}"
+					],
+					"path": [
+						"tags",
+						"client"
+					],
+					"query": [
+						{
+							"key": "clientParam",
+							"value": "{{clientId1}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List  Tags for Client 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId5}}\",\n    \"key\": \"device-type\",\n    \"valueWrite\": \"android\"}"
+				},
+				"url": {
+					"raw": "{{pushUrl}}/tags/client?clientParam={{clientId2}}",
+					"host": [
+						"{{pushUrl}}"
+					],
+					"path": [
+						"tags",
+						"client"
+					],
+					"query": [
+						{
+							"key": "clientParam",
+							"value": "{{clientId2}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Segment 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "b82dceac-742b-4978-8a33-9c494626370b",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"segmentId1\", jsonData.content.segmentId);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"Ogretmenlerden ios cihazı olanlar.\",\n                         \"residents\": {\n                             \"sets\": {\n                                 \"a\": {\"key\": \"role\", \"relation\": \"=\", \"value\": \"ogretmen\", \"intention\": \"client\"},\n                                 \"b\": {\"key\": \"devicetype\", \"relation\": \"=\", \"value\": \"ios\", \"intention\": \"client\"}\n                             },\n                             \"expression\": \"a n b\"\n                         }\n}"
+				},
+				"url": "{{pushUrl}}/segments"
+			},
+			"response": []
+		},
+		{
+			"name": "Create Segment 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4e6c794f-e989-4651-b26a-3f0f274acffa",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"segmentId2\", jsonData.content.segmentId);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"10A sınıfında android cihazı bulunanlar \",\n                         \"residents\": {\n                             \"sets\": {\n                                 \"a\": {\"key\": \"devicetype\", \"relation\": \"=\", \"value\": \"android\", \"intention\": \"client\"},\n                                 \"b\": {\"key\": \"class\", \"relation\": \"=\", \"value\": \"10A\", \"intention\": \"client\"}\n                             },\n                             \"expression\": \"a n b\"\n                         }\n}"
+				},
+				"url": "{{pushUrl}}/segments"
+			},
+			"response": []
+		},
+		{
+			"name": "Create Segment 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "68c99fa9-418b-4c05-8449-790690c34fc5",
+						"type": "text/javascript",
+						"exec": [
+							"let jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"segmentId3\", jsonData.content.segmentId);",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"10A ve 10B sınıfında bulunanlar\",\n                         \"residents\": {\n                             \"sets\": {\n                                 \"a\": {\"key\": \"class\", \"relation\": \"=\", \"value\": \"10A\", \"intention\": \"client\"},\n                                 \"b\": {\"key\": \"class\", \"relation\": \"=\", \"value\": \"10B\", \"intention\": \"client\"}\n                             },\n                             \"expression\": \"a U b\"\n                         }\n}"
+				},
+				"url": "{{pushUrl}}/segments"
+			},
+			"response": []
+		},
+		{
+			"name": "List Segment",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2abe4541-2c46-4c2a-8473-25de8616fd9f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer2AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"clientId\": \"{{clientId5}}\",\n    \"key\": \"device-type\",\n    \"valueWrite\": \"android\"}"
+				},
+				"url": "{{pushUrl}}/segments"
+			},
+			"response": []
+		},
+		{
+			"name": "Send message with segment 1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "9e2bab1a-dd4c-4003-b3c7-97bdd2317a98",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"title\": \"Merhaba\",\n                         \"body\": \"Merhaba ios cihazı olan öğretmenlerimiz.\",\n                         \"type\": \"ordinary\",\n                         \"language\": \"Turkish\",\n                         \"icon\": \"https://avatars0.githubusercontent.com/u/10046644?s=200&v=4\",\n                         \"image\": \"https://avatars0.githubusercontent.com/u/10046644?s=200&v=4\",\n                         \"badge\": \"null\",\n                         \"consumers\":[],\n                         \"audience\": \"{{segmentId1}}\",\n                         \"scheduleTime\": \"2017-08-20T08:54:56.750Z00:00\",\n                         \"extra\": null\n\t\n}"
+				},
+				"url": "{{pushUrl}}/messages"
+			},
+			"response": []
+		},
+		{
+			"name": "Send message with segment 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "9e2bab1a-dd4c-4003-b3c7-97bdd2317a98",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"title\": \"Merhaba\",\n                         \"body\": \"Merhaba 10A sınıfının ios cihazı olan öğrencileri\",\n                         \"type\": \"ordinary\",\n                         \"language\": \"Turkish\",\n                         \"icon\": \"https://avatars0.githubusercontent.com/u/10046644?s=200&v=4\",\n                         \"image\": \"https://avatars0.githubusercontent.com/u/10046644?s=200&v=4\",\n                         \"badge\": \"null\",\n                         \"consumers\":[],\n                         \"audience\": \"{{segmentId2}}\",\n                         \"scheduleTime\": \"2017-08-20T08:54:56.750Z00:00\",\n                         \"extra\": null\n\t\n}"
+				},
+				"url": "{{pushUrl}}/messages"
+			},
+			"response": []
+		},
+		{
+			"name": "Send message with segment 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "9e2bab1a-dd4c-4003-b3c7-97bdd2317a98",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "AUTHORIZATION",
+						"value": "Token {{consumer1AccessTokenPSCT}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"title\": \"Merhaba\",\n                         \"body\": \"Merhaba 10A ve 10B sınıfındaki ogrenciler\",\n                         \"type\": \"ordinary\",\n                         \"language\": \"Turkish\",\n                         \"icon\": \"https://avatars0.githubusercontent.com/u/10046644?s=200&v=4\",\n                         \"image\": \"https://avatars0.githubusercontent.com/u/10046644?s=200&v=4\",\n                         \"badge\": \"null\",\n                         \"consumers\":[],\n                         \"audience\": \"{{segmentId3}}\",\n                         \"scheduleTime\": \"2017-08-20T08:54:56.750Z00:00\",\n                         \"extra\": null\n\t\n}"
+				},
+				"url": "{{pushUrl}}/messages"
+			},
+			"response": []
+		}
+	]
+}
