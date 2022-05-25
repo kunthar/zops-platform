@@ -24,7 +24,7 @@ ply==3.4
 psycopg2==2.7.3.1
 pycurl==7.43.0.2
 pyhcl==0.2.3
-PyJWT==1.5.3
+PyJWT==2.4.0
 pylint==2.3.1
 pyrabbit2==1.0.6
 pyresttest==1.7.2.dev0
